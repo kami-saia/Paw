@@ -2,10 +2,11 @@ import { useCallback, useState, memo, useMemo } from "react"
 import { useEvent } from "react-use"
 import { ChevronDown, Skull } from "lucide-react"
 
-import { CommandExecutionStatus, commandExecutionStatusSchema } from "@roo/schemas"
-import { ExtensionMessage } from "@roo/shared/ExtensionMessage"
-import { safeJsonParse } from "@roo/shared/safeJsonParse"
-import { COMMAND_OUTPUT_STRING } from "@roo/shared/combineCommandSequences"
+import { CommandExecutionStatus, commandExecutionStatusSchema } from "@roo-code/types"
+
+import { ExtensionMessage } from "@roo/ExtensionMessage"
+import { safeJsonParse } from "@roo/safeJsonParse"
+import { COMMAND_OUTPUT_STRING } from "@roo/combineCommandSequences"
 
 import { vscode } from "@src/utils/vscode"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
@@ -23,18 +24,18 @@ interface CommandExecutionProps {
 export const CommandExecution = ({ executionId, text, icon, title }: CommandExecutionProps) => {
 	const { terminalShellIntegrationDisabled = false } = useExtensionState()
 
+	const { command, output: parsedOutput } = useMemo(() => parseCommandAndOutput(text), [text])
+
 	// If we aren't opening the VSCode terminal for this command then we default
 	// to expanding the command execution output.
 	const [isExpanded, setIsExpanded] = useState(terminalShellIntegrationDisabled)
-
-	const { command: initialCommand, output: initialOutput } = useMemo(
-		() => (text ? parseCommandAndOutput(text) : { command: "", output: "" }),
-		[text],
-	)
-
-	const [output, setOutput] = useState(initialOutput)
-	const [command, setCommand] = useState(initialCommand)
+	const [streamingOutput, setStreamingOutput] = useState("")
 	const [status, setStatus] = useState<CommandExecutionStatus | null>(null)
+
+	// The command's output can either come from the text associated with the
+	// task message (this is the case for completed commands) or from the
+	// streaming output (this is the case for running commands).
+	const output = streamingOutput || parsedOutput
 
 	const onMessage = useCallback(
 		(event: MessageEvent) => {
@@ -52,11 +53,10 @@ export const CommandExecution = ({ executionId, text, icon, title }: CommandExec
 
 					switch (data.status) {
 						case "started":
-							setCommand(data.command)
 							setStatus(data)
 							break
 						case "output":
-							setOutput(data.output)
+							setStreamingOutput(data.output)
 							break
 						case "fallback":
 							setIsExpanded(true)
@@ -143,7 +143,11 @@ const OutputContainerInternal = ({ isExpanded, output }: { isExpanded: boolean; 
 
 const OutputContainer = memo(OutputContainerInternal)
 
-const parseCommandAndOutput = (text: string) => {
+const parseCommandAndOutput = (text: string | undefined) => {
+	if (!text) {
+		return { command: "", output: "" }
+	}
+
 	const index = text.indexOf(COMMAND_OUTPUT_STRING)
 
 	if (index === -1) {
