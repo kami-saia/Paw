@@ -41,6 +41,7 @@ import { McpHub } from "../../services/mcp/McpHub"
 import { McpServerManager } from "../../services/mcp/McpServerManager"
 import { telemetryService } from "../../services/telemetry/TelemetryService"
 import { RepoPerTaskCheckpointService } from "../../services/checkpoints"
+import { SemanticMemoryIntegration } from "../../services/memory/SemanticMemoryIntegration" // RecalledMemoryItem is defined here
 
 // integrations
 import { DiffViewProvider } from "../../integrations/editor/DiffViewProvider"
@@ -80,6 +81,19 @@ import {
 } from "../checkpoints"
 import { processUserContentMentions } from "../mentions/processUserContentMentions"
 
+export type UserMessageEnrichmentPayload = {
+	taskId: string
+	userContent: Anthropic.Messages.ContentBlockParam[] // Input: original, Output: potentially modified by listener
+	currentHistorySlice: Anthropic.MessageParam[]
+	promises: Promise<void>[] // Listeners can push their async work here
+}
+
+export type AssistantResponseProcessedPayload = {
+	taskId: string
+	userMessage: Anthropic.MessageParam // The user message (post-enrichment) that prompted the response
+	assistantMessage: Anthropic.MessageParam
+}
+
 export type ClineEvents = {
 	message: [{ action: "created" | "updated"; message: ClineMessage }]
 	taskStarted: []
@@ -92,6 +106,9 @@ export type ClineEvents = {
 	taskCompleted: [taskId: string, tokenUsage: TokenUsage, toolUsage: ToolUsage]
 	taskTokenUsageUpdated: [taskId: string, tokenUsage: TokenUsage]
 	taskToolFailed: [taskId: string, tool: ToolName, error: string]
+	// New events for semantic memory
+	beforeUserMessageEnrichment: [payload: UserMessageEnrichmentPayload]
+	afterAssistantResponseProcessed: [payload: AssistantResponseProcessedPayload]
 }
 
 export type TaskOptions = {
@@ -143,6 +160,8 @@ export class Task extends EventEmitter<ClineEvents> {
 	fileContextTracker: FileContextTracker
 	urlContentFetcher: UrlContentFetcher
 	terminalProcess?: RooTerminalProcess
+	semanticMemory?: SemanticMemoryIntegration
+	// currentTurnRecalledMemories removed as it's now handled by SemanticMemoryIntegration via events
 
 	// Computer User
 	browserSession: BrowserSession
@@ -253,6 +272,17 @@ export class Task extends EventEmitter<ClineEvents> {
 		this.diffStrategy = new MultiSearchReplaceDiffStrategy(this.fuzzyMatchThreshold)
 		this.toolRepetitionDetector = new ToolRepetitionDetector(this.consecutiveMistakeLimit)
 
+		// Initialize Semantic Memory Integration
+		const mcpHub = provider.getMcpHub()
+		if (mcpHub) {
+			// Pass `this` (the Task instance) to SemanticMemoryIntegration
+			// so it can subscribe to events.
+			this.semanticMemory = new SemanticMemoryIntegration(mcpHub, this)
+			console.log(`[Task ${this.taskId}] SemanticMemoryIntegration initialized.`)
+		} else {
+			console.warn(`[Task ${this.taskId}] McpHub not available, SemanticMemoryIntegration not initialized.`)
+		}
+
 		onCreated?.(this)
 
 		if (startTask) {
@@ -292,6 +322,7 @@ export class Task extends EventEmitter<ClineEvents> {
 		const messageWithTs = { ...message, ts: Date.now() }
 		this.apiConversationHistory.push(messageWithTs)
 		await this.saveApiConversationHistory()
+		// Removed direct semanticMemory.storeExchange call; now handled by afterAssistantResponseProcessed event
 	}
 
 	async overwriteApiConversationHistory(newHistory: Anthropic.MessageParam[]) {
@@ -594,6 +625,24 @@ export class Task extends EventEmitter<ClineEvents> {
 		this.apiConversationHistory = []
 		await this.providerRef.deref()?.postStateToWebview()
 
+		// Initialize semantic memory integration if available
+		try {
+			const provider = this.providerRef.deref()
+			if (provider) {
+				const mcpHub = await McpServerManager.getInstance(provider.context, provider)
+				if (mcpHub) {
+					if (mcpHub && !this.semanticMemory) {
+						// Ensure not to re-initialize if already done by constructor
+						this.semanticMemory = new SemanticMemoryIntegration(mcpHub, this)
+						console.log("Semantic memory integration initialized for task", this.taskId)
+					}
+				}
+			}
+		} catch (error) {
+			console.error("Failed to initialize semantic memory integration:", error)
+			// Continue without semantic memory if initialization fails
+		}
+
 		await this.say("text", task, images)
 		this.isInitialized = true
 
@@ -635,6 +684,24 @@ export class Task extends EventEmitter<ClineEvents> {
 	}
 
 	private async resumeTaskFromHistory() {
+		// Initialize semantic memory integration if available
+		try {
+			const provider = this.providerRef.deref()
+			if (provider) {
+				const mcpHub = await McpServerManager.getInstance(provider.context, provider)
+				if (mcpHub) {
+					if (mcpHub && !this.semanticMemory) {
+						// Ensure not to re-initialize
+						this.semanticMemory = new SemanticMemoryIntegration(mcpHub, this)
+						console.log("Semantic memory integration initialized for resumed task", this.taskId)
+					}
+				}
+			}
+		} catch (error) {
+			console.error("Failed to initialize semantic memory integration:", error)
+			// Continue without semantic memory if initialization fails
+		}
+
 		const modifiedClineMessages = await this.getSavedClineMessages()
 
 		// Remove any resume messages that may have been added before
@@ -1037,11 +1104,19 @@ export class Task extends EventEmitter<ClineEvents> {
 			fileContextTracker: this.fileContextTracker,
 		})
 
-		const environmentDetails = await getEnvironmentDetails(this, includeFileDetails)
+		// Emit beforeUserMessageEnrichment event
+		const enrichmentPayload: UserMessageEnrichmentPayload = {
+			taskId: this.taskId,
+			userContent: [...parsedUserContent], // Pass a mutable copy
+			currentHistorySlice: this.apiConversationHistory.slice(-4), // Example: last 4 messages
+			promises: [],
+		}
+		this.emit("beforeUserMessageEnrichment", enrichmentPayload)
+		await Promise.all(enrichmentPayload.promises)
+		// enrichmentPayload.userContent now contains the potentially enriched content
 
-		// Add environment details as its own text block, separate from tool
-		// results.
-		const finalUserContent = [...parsedUserContent, { type: "text" as const, text: environmentDetails }]
+		const environmentDetails = await getEnvironmentDetails(this, includeFileDetails)
+		const finalUserContent = [...enrichmentPayload.userContent, { type: "text" as const, text: environmentDetails }]
 
 		await this.addToApiConversationHistory({ role: "user", content: finalUserContent })
 		telemetryService.captureConversationMessage(this.taskId, "user")
@@ -1297,10 +1372,29 @@ export class Task extends EventEmitter<ClineEvents> {
 			let didEndLoop = false
 
 			if (assistantMessage.length > 0) {
-				await this.addToApiConversationHistory({
+				const assistantApiMessage: Anthropic.MessageParam = {
 					role: "assistant",
 					content: [{ type: "text", text: assistantMessage }],
-				})
+				}
+				await this.addToApiConversationHistory(assistantApiMessage)
+
+				// Emit afterAssistantResponseProcessed event
+				const lastUserMessageInHistory = this.apiConversationHistory
+					.slice(0, -1) // Exclude the current assistant message
+					.filter((m) => m.role === "user")
+					.pop()
+
+				if (lastUserMessageInHistory) {
+					const processedPayload: AssistantResponseProcessedPayload = {
+						taskId: this.taskId,
+						userMessage: lastUserMessageInHistory,
+						assistantMessage: assistantApiMessage,
+					}
+					this.emit("afterAssistantResponseProcessed", processedPayload)
+				} else {
+					console.warn(`[Task ${this.taskId}] Could not find user message for assistant response processing.`)
+				}
+				// Removed direct semanticMemory.storeExchange call
 
 				telemetryService.captureConversationMessage(this.taskId, "assistant")
 
@@ -1493,10 +1587,13 @@ export class Task extends EventEmitter<ClineEvents> {
 			}
 		}
 
+		// Removed direct semantic memory enrichment logic from here.
+		// It's now handled by the 'beforeUserMessageEnrichment' event.
+
 		// Clean conversation history by:
 		// 1. Converting to Anthropic.MessageParam by spreading only the API-required properties.
 		// 2. Converting image blocks to text descriptions if model doesn't support images.
-		const cleanConversationHistory = this.apiConversationHistory.map(({ role, content }) => {
+		let cleanConversationHistory = this.apiConversationHistory.map(({ role, content }) => {
 			// Handle array content (could contain image blocks).
 			if (Array.isArray(content)) {
 				if (!this.api.getModel().info.supportsImages) {
@@ -1516,8 +1613,11 @@ export class Task extends EventEmitter<ClineEvents> {
 				}
 			}
 
-			return { role, content }
+			return { role, content } as Anthropic.MessageParam // Ensure type
 		})
+
+		// Removed manual prepending of recalled memories.
+		// This is now handled by the 'beforeUserMessageEnrichment' event modifying userContent.
 
 		const stream = this.api.createMessage(systemPrompt, cleanConversationHistory)
 		const iterator = stream[Symbol.asyncIterator]()

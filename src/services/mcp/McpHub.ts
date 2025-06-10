@@ -28,6 +28,10 @@ import {
 	McpTool,
 	McpToolCallResponse,
 } from "../../shared/mcp"
+
+// Re-export McpServer so other modules can import it from McpHub
+export type { McpServer } from "../../shared/mcp"
+
 import { fileExistsAtPath } from "../../utils/fs"
 import { arePathsEqual } from "../../utils/path"
 import { injectEnv } from "../../utils/config"
