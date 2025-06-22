@@ -39,6 +39,13 @@ export const config = [
 					caughtErrorsIgnorePattern: "^_",
 				},
 			],
+			"@typescript-eslint/no-unused-expressions": [
+				"error",
+				{
+					allowShortCircuit: true,
+					allowTernary: true,
+				},
+			],
 		},
 	},
 ]

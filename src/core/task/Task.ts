@@ -86,6 +86,20 @@ import { ApiMessage } from "../task-persistence/apiMessages"
 import { getMessagesSinceLastSummary, summarizeConversation } from "../condense"
 import { maybeRemoveImageBlocks } from "../../api/transform/image-cleaning"
 
+// Payloads for Semantic Memory Integration events
+export interface UserMessageEnrichmentPayload {
+	taskId: string
+	userContent: Anthropic.Messages.ContentBlockParam[]
+	currentHistorySlice: ApiMessage[]
+	promises: Promise<void>[]
+}
+
+export interface AssistantResponseProcessedPayload {
+	taskId: string
+	userMessage: ApiMessage
+	assistantMessage: ApiMessage
+}
+
 export type ClineEvents = {
 	message: [{ action: "created" | "updated"; message: ClineMessage }]
 	taskStarted: []
@@ -98,6 +112,8 @@ export type ClineEvents = {
 	taskCompleted: [taskId: string, tokenUsage: TokenUsage, toolUsage: ToolUsage]
 	taskTokenUsageUpdated: [taskId: string, tokenUsage: TokenUsage]
 	taskToolFailed: [taskId: string, tool: ToolName, error: string]
+	beforeUserMessageEnrichment: [payload: UserMessageEnrichmentPayload]
+	afterAssistantResponseProcessed: [payload: AssistantResponseProcessedPayload]
 }
 
 export type TaskOptions = {
@@ -1208,6 +1224,18 @@ export class Task extends EventEmitter<ClineEvents> {
 			}),
 		)
 
+		// Enrich user content with semantic memory before processing
+		const enrichmentPayload: UserMessageEnrichmentPayload = {
+			taskId: this.taskId,
+			userContent: userContent,
+			currentHistorySlice: this.apiConversationHistory,
+			promises: [],
+		}
+		this.emit("beforeUserMessageEnrichment", enrichmentPayload)
+		await Promise.all(enrichmentPayload.promises)
+		// Use the (potentially) modified userContent from the payload
+		userContent = enrichmentPayload.userContent
+
 		const { showRooIgnoredFiles = true } = (await this.providerRef.deref()?.getState()) ?? {}
 
 		const parsedUserContent = await processUserContentMentions({
@@ -1498,10 +1526,22 @@ export class Task extends EventEmitter<ClineEvents> {
 			let didEndLoop = false
 
 			if (assistantMessage.length > 0) {
-				await this.addToApiConversationHistory({
+				const assistantMessageForHistory: ApiMessage = {
 					role: "assistant",
 					content: [{ type: "text", text: assistantMessage }],
-				})
+					ts: Date.now(),
+				}
+				this.apiConversationHistory.push(assistantMessageForHistory)
+				await this.saveApiConversationHistory()
+
+				const userMessageForHistory = this.apiConversationHistory[this.apiConversationHistory.length - 2]
+
+				const storePayload: AssistantResponseProcessedPayload = {
+					taskId: this.taskId,
+					userMessage: userMessageForHistory,
+					assistantMessage: assistantMessageForHistory,
+				}
+				this.emit("afterAssistantResponseProcessed", storePayload)
 
 				TelemetryService.instance.captureConversationMessage(this.taskId, "assistant")
 

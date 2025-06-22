@@ -39,6 +39,8 @@ export type McpConnection = {
 	transport: StdioClientTransport | SSEClientTransport | StreamableHTTPClientTransport
 }
 
+export type { McpServer }
+
 // Base configuration schema for common settings
 const BaseConfigSchema = z.object({
 	disabled: z.boolean().optional(),
