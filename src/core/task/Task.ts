@@ -1571,6 +1571,27 @@ export class Task extends EventEmitter<ClineEvents> {
 
 				TelemetryService.instance.captureConversationMessage(this.taskId, "assistant")
 
+				// Clean the user message that was just processed to remove the memory block from the permanent history.
+				// This prevents the same memory block from polluting future enrichment calls.
+				const userMessageIndex = this.apiConversationHistory.length - 2
+				const userMessageForThisTurn = this.apiConversationHistory[userMessageIndex]
+
+				if (
+					userMessageForThisTurn &&
+					userMessageForThisTurn.role === "user" &&
+					Array.isArray(userMessageForThisTurn.content)
+				) {
+					const originalContent = userMessageForThisTurn.content
+					const cleanedContent = originalContent.filter(
+						(block) => !(block.type === "text" && block.text.startsWith("[Recalled Memories]")),
+					)
+
+					if (cleanedContent.length < originalContent.length) {
+						userMessageForThisTurn.content = cleanedContent
+						await this.overwriteApiConversationHistory(this.apiConversationHistory)
+					}
+				}
+
 				// NOTE: This comment is here for future reference - this was a
 				// workaround for `userMessageContent` not getting set to true.
 				// It was due to it not recursively calling for partial blocks
