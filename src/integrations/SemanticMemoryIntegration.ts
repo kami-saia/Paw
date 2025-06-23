@@ -95,12 +95,14 @@ export class SemanticMemoryIntegration {
 				}
 			}
 
-			const userQuery = userQueryParts.join("\n\n")
+			const rawUserQuery = userQueryParts.join("\n\n")
+			// Clean the query to remove artifacts like previous recalled memories or tool tags
+			const userQuery = this.cleanMessageContent(rawUserQuery)
 			console.error(`[SemanticMemoryIntegration Task ${this.task.taskId}] Derived userQuery: "${userQuery}"`)
 
 			if (!userQuery) {
 				console.error(
-					`[SemanticMemoryIntegration Task ${this.task.taskId}] No user query text found in payload for enrichment after checking text and tool_result blocks.`,
+					`[SemanticMemoryIntegration Task ${this.task.taskId}] No user query text found in payload for enrichment after cleaning.`,
 				)
 				return
 			}
