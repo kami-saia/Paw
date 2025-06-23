@@ -229,6 +229,9 @@ export class SemanticMemoryIntegration {
 
 		let cleanedText = text
 
+		// 0. Remove <environment_details>...</environment_details> blocks and their content
+		cleanedText = cleanedText.replace(/<environment_details>[\s\S]*?<\/environment_details>\n?/g, "")
+
 		// 1. Remove [Recalled Memories]...[/Recalled Memories] blocks and their content
 		// This regex handles multi-line content within the recalled memories block
 		cleanedText = cleanedText.replace(/\[Recalled Memories\][\s\S]*?\[\/Recalled Memories\]\n?/g, "")
@@ -237,16 +240,20 @@ export class SemanticMemoryIntegration {
 		// This regex handles multi-line content within the diff block
 		cleanedText = cleanedText.replace(/<<<<<<< SEARCH[\s\S]*?>>>>>>> REPLACE\n?/g, "")
 
-		// 3. Remove common XML-like tool tags (opening, closing, self-closing)
+		// 3. Remove entire blocks for certain tool calls that are not useful for memory.
+		const blockToolTags = ["ask_followup_question", "attempt_completion"]
+		for (const tagName of blockToolTags) {
+			const blockRegex = new RegExp(`<${tagName}(?:\\s+[^>]*)?>[\\s\\S]*?<\\/${tagName}>\\n?`, "g")
+			cleanedText = cleanedText.replace(blockRegex, "")
+		}
+
+		// 4. Remove common XML-like tool tags (opening, closing, self-closing)
 
 		// Remove self-closing tags like <tool_name /> or <tool_name/>
 		cleanedText = cleanedText.replace(/<([a-zA-Z0-9_:]+)\s*\/>/g, "")
 
-		// Remove opening/closing tags for a list of known tool tags.
-		// This removes the tags themselves, aiming to preserve content between them.
-		// This is a simplified approach; a full parser would be more robust for deeply nested structures.
-		const toolTags = [
-			"ask_followup_question",
+		// For other tools, just remove the tags to preserve any meaningful content inside.
+		const toolTagsToRemove = [
 			"read_file",
 			"apply_diff",
 			"search_files",
@@ -257,7 +264,6 @@ export class SemanticMemoryIntegration {
 			"execute_command",
 			"use_mcp_tool",
 			"access_mcp_resource",
-			"attempt_completion",
 			"switch_mode",
 			"new_task",
 			"fetch_instructions",
@@ -270,9 +276,6 @@ export class SemanticMemoryIntegration {
 			"query",
 			"mode",
 			"message",
-			"question",
-			"follow_up",
-			"suggest",
 			"result",
 			"command",
 			"server_name",
@@ -282,7 +285,7 @@ export class SemanticMemoryIntegration {
 			"task",
 		]
 
-		for (const tagName of toolTags) {
+		for (const tagName of toolTagsToRemove) {
 			// Regex to match opening tags like <tagName> or <tagName attr="value">
 			const openTagRegex = new RegExp(`<${tagName}(?:\\s+[^>]*)?>`, "g")
 			// Regex to match closing tags </tagName>
