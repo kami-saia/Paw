@@ -49,6 +49,7 @@ import { RepoPerTaskCheckpointService } from "../../services/checkpoints"
 
 // integrations
 import { DiffViewProvider } from "../../integrations/editor/DiffViewProvider"
+import { SemanticMemoryIntegration } from "../../integrations/SemanticMemoryIntegration"
 import { findToolName, formatContentBlockToMarkdown } from "../../integrations/misc/export-markdown"
 import { RooTerminalProcess } from "../../integrations/terminal/types"
 import { TerminalRegistry } from "../../integrations/terminal/TerminalRegistry"
@@ -173,6 +174,7 @@ export class Task extends EventEmitter<ClineEvents> {
 	fileContextTracker: FileContextTracker
 	urlContentFetcher: UrlContentFetcher
 	terminalProcess?: RooTerminalProcess
+	semanticMemoryIntegration?: SemanticMemoryIntegration
 
 	// Computer User
 	browserSession: BrowserSession
@@ -1123,6 +1125,29 @@ export class Task extends EventEmitter<ClineEvents> {
 
 	// Task Loop
 
+	private async initializeIntegrations(): Promise<void> {
+		if (this.semanticMemoryIntegration) {
+			return
+		}
+
+		const provider = this.providerRef.deref()
+		if (!provider) {
+			return
+		}
+
+		try {
+			const { mcpEnabled } = (await provider.getState()) ?? {}
+			if (mcpEnabled ?? true) {
+				const mcpHub = await McpServerManager.getInstance(provider.context, provider)
+				if (mcpHub) {
+					this.semanticMemoryIntegration = new SemanticMemoryIntegration(mcpHub, this)
+				}
+			}
+		} catch (error) {
+			console.error("Failed to initialize SemanticMemoryIntegration:", error)
+		}
+	}
+
 	private async initiateTaskLoop(userContent: Anthropic.Messages.ContentBlockParam[]): Promise<void> {
 		// Kicks off the checkpoints initialization process in the background.
 		getCheckpointService(this)
@@ -1162,6 +1187,7 @@ export class Task extends EventEmitter<ClineEvents> {
 		userContent: Anthropic.Messages.ContentBlockParam[],
 		includeFileDetails: boolean = false,
 	): Promise<boolean> {
+		await this.initializeIntegrations()
 		if (this.abort) {
 			throw new Error(`[RooCode#recursivelyMakeRooRequests] task ${this.taskId}.${this.instanceId} aborted`)
 		}
