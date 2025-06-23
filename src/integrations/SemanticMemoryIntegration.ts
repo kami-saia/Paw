@@ -50,6 +50,15 @@ export class SemanticMemoryIntegration {
 		const enrichmentPromise = async () => {
 			if (payload.taskId !== this.task.taskId) return // Ensure we're acting on the correct task
 
+			// Clean up any stale memory blocks from previous enrichment runs before processing
+			payload.userContent = payload.userContent.filter((block) => {
+				if (block.type === "text") {
+					// Filter out blocks that are just recalled memories.
+					return !block.text.trim().startsWith("[Recalled Memories]")
+				}
+				return true
+			})
+
 			console.error(
 				`[SemanticMemoryIntegration Task ${this.task.taskId}] Raw payload.userContent for enrichment:`,
 				JSON.stringify(payload.userContent, null, 2),
@@ -159,7 +168,7 @@ export class SemanticMemoryIntegration {
 
 		const conversationContextString = recentHistory
 			.map((msg) => {
-				const content =
+				let content =
 					typeof msg.content === "string"
 						? msg.content
 						: Array.isArray(msg.content)
@@ -168,6 +177,8 @@ export class SemanticMemoryIntegration {
 									.map((c) => (c as Anthropic.TextBlockParam).text)
 									.join(" ")
 							: ""
+				// Clean the content to remove memory blocks and other noise before sending as context
+				content = this.cleanMessageContent(content)
 				return `${msg.role}: ${content}`
 			})
 			.join("\n")
