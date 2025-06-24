@@ -122,7 +122,7 @@ export class SemanticMemoryIntegration {
 				const formattedMemories = recalledMemories
 					.map(
 						(item, index) =>
-							`Memory ${index + 1} (Source: ${item.sourceId}, Score: ${item.score?.toFixed(4) || "N/A"}):\n${item.text}`,
+							`Memory ${index + 1} (Source: ${item.sourceId}, Score: ${(1 - (item.distance ?? 1)).toFixed(4)}):\n${item.text}`,
 					)
 					.join("\n---\n")
 
