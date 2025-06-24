@@ -166,7 +166,10 @@ export class SemanticMemoryIntegration {
 			return []
 		}
 
-		const conversationContextString = recentHistory
+		// Use the last 6 messages (3 user/assistant pairs) for context to keep it relevant and lightweight.
+		const historySlice = recentHistory.slice(-6)
+
+		const conversationContextString = historySlice
 			.map((msg) => {
 				let content =
 					typeof msg.content === "string"
