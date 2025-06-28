@@ -34,6 +34,9 @@ export class SemanticMemoryIntegration {
 	private task: Task // Store the task instance
 	private readonly semanticMemoryServerName = "semantic-memory"
 
+	private lastStoredMessageIndex = -1
+	private readonly SHORT_TERM_MEMORY_WINDOW = 8 // 4 exchanges (user/assistant pairs)
+
 	constructor(mcpHub: McpHub, task: Task) {
 		this.mcpHub = mcpHub
 		this.task = task
@@ -44,6 +47,48 @@ export class SemanticMemoryIntegration {
 		this.task.on("beforeUserMessageEnrichment", this.handleBeforeUserMessageEnrichment.bind(this))
 		this.task.on("afterAssistantResponseProcessed", this.handleAfterAssistantResponseProcessed.bind(this))
 		console.error(`[SemanticMemoryIntegration Task ${this.task.taskId}] Subscribed to task events.`)
+	}
+
+	public async flushShortTermMemory(): Promise<void> {
+		if (!this.isAvailable()) {
+			console.warn(
+				`[SemanticMemoryIntegration Task ${this.task.taskId}] flushShortTermMemory: Server not available.`,
+			)
+			return
+		}
+
+		const history = this.task.apiConversationHistory
+		const startIndex = this.lastStoredMessageIndex + 1
+
+		if (startIndex >= history.length) {
+			console.warn(
+				`[SemanticMemoryIntegration Task ${this.task.taskId}] flushShortTermMemory: No new messages to store.`,
+			)
+			return
+		}
+
+		console.warn(
+			`[SemanticMemoryIntegration Task ${this.task.taskId}] Flushing short-term memory to long-term storage. Storing from index ${startIndex}.`,
+		)
+
+		for (let i = startIndex; i < history.length; i++) {
+			const userMessage = history[i]
+			const assistantMessage = history[i + 1]
+
+			// Check for a valid user/assistant pair
+			if (userMessage?.role === "user" && assistantMessage?.role === "assistant") {
+				console.warn(
+					`[SemanticMemoryIntegration Task ${this.task.taskId}] Flushing exchange (user: ${i}, assistant: ${
+						i + 1
+					}).`,
+				)
+				await this.storeExchangeInternal(userMessage, assistantMessage, this.task.taskId)
+
+				// Update the index to the assistant message we just processed
+				this.lastStoredMessageIndex = i + 1
+				i++ // Increment to move past the assistant message
+			}
+		}
 	}
 
 	private handleBeforeUserMessageEnrichment(payload: UserMessageEnrichmentPayload): void {
@@ -143,7 +188,49 @@ export class SemanticMemoryIntegration {
 	private async handleAfterAssistantResponseProcessed(payload: AssistantResponseProcessedPayload): Promise<void> {
 		if (payload.taskId !== this.task.taskId) return
 
-		await this.storeExchangeInternal(payload.userMessage, payload.assistantMessage, payload.taskId)
+		const history = this.task.apiConversationHistory
+		// Determine the boundary for what's considered "long-term"
+		const storeUpToIndex = history.length - this.SHORT_TERM_MEMORY_WINDOW
+
+		// Iterate through messages that have fallen out of the short-term window
+		// and have not been stored yet.
+		for (let i = this.lastStoredMessageIndex + 1; i < storeUpToIndex; i++) {
+			const userMessage = history[i]
+			const assistantMessage = history[i + 1]
+
+			// Check for a valid user/assistant pair
+			if (userMessage?.role === "user" && assistantMessage?.role === "assistant") {
+				console.warn(
+					`[SemanticMemoryIntegration Task ${this.task.taskId}] Storing exchange (user: ${i}, assistant: ${
+						i + 1
+					}) into long-term memory.`,
+				)
+				await this.storeExchangeInternal(userMessage, assistantMessage, this.task.taskId)
+
+				// Update the index to the assistant message we just processed and skip it in the next iteration
+				this.lastStoredMessageIndex = i + 1
+				i++ // Increment to move past the assistant message
+			}
+		}
+
+		// Check if the assistant's response contains a completion attempt, and if so, flush the remaining short-term memory.
+		const assistantMessage = payload.assistantMessage
+		let assistantMessageText = ""
+		if (typeof assistantMessage.content === "string") {
+			assistantMessageText = assistantMessage.content
+		} else if (Array.isArray(assistantMessage.content)) {
+			assistantMessageText = assistantMessage.content
+				.filter((block) => block.type === "text")
+				.map((block) => (block as Anthropic.TextBlockParam).text)
+				.join("\n\n")
+		}
+
+		if (assistantMessageText.includes("<attempt_completion>")) {
+			console.warn(
+				`[SemanticMemoryIntegration Task ${this.task.taskId}] Completion detected. Flushing remaining short-term memory.`,
+			)
+			await this.flushShortTermMemory()
+		}
 	}
 
 	public isAvailable(): boolean {
