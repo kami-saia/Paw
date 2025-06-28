@@ -356,19 +356,25 @@ export class SemanticMemoryIntegration {
 				.join("\n\n")
 		}
 
-		// Clean the extracted text
-		const cleanedUserMessage = this.cleanMessageContent(userMessageText)
+		// If a <user_message> tag is present, extract its content. Otherwise, use the raw message.
+		let finalUserMessageToStore = userMessageText
+		const userMessageMatch = userMessageText.match(/<user_message>([\s\S]*?)<\/user_message>/)
+		if (userMessageMatch && userMessageMatch[1]) {
+			finalUserMessageToStore = userMessageMatch[1].trim()
+		}
+
+		// Clean only the assistant's response.
 		const cleanedAssistantResponse = this.cleanMessageContent(assistantResponseText)
 
-		if (!cleanedUserMessage && !cleanedAssistantResponse) {
+		if (!finalUserMessageToStore && !cleanedAssistantResponse) {
 			console.warn(
-				`[SemanticMemoryIntegration Task ${this.task.taskId}] storeExchangeInternal: Both user and assistant messages are empty after cleaning. Skipping.`,
+				`[SemanticMemoryIntegration Task ${this.task.taskId}] storeExchangeInternal: Both user and assistant messages are empty after processing. Skipping.`,
 			)
 			return
 		}
 
 		const mcpArgs: StoreExchangeMcpPayload = {
-			userMessage: cleanedUserMessage,
+			userMessage: finalUserMessageToStore,
 			assistantResponse: cleanedAssistantResponse,
 			taskId: taskId,
 			metadata: {

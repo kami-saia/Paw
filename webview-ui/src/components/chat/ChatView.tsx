@@ -486,11 +486,13 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 
 	const handleSendMessage = useCallback(
 		(text: string, images: string[]) => {
-			text = text.trim()
+			const trimmedText = text.trim()
 
-			if (text || images.length > 0) {
+			if (trimmedText || images.length > 0) {
+				const messageToSend = `<user_message>${trimmedText}</user_message>`
+
 				if (messagesRef.current.length === 0) {
-					vscode.postMessage({ type: "newTask", text, images })
+					vscode.postMessage({ type: "newTask", text: messageToSend, images })
 				} else if (clineAskRef.current) {
 					// Use clineAskRef.current
 					switch (
@@ -506,7 +508,12 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 						case "resume_task":
 						case "resume_completed_task":
 						case "mistake_limit_reached":
-							vscode.postMessage({ type: "askResponse", askResponse: "messageResponse", text, images })
+							vscode.postMessage({
+								type: "askResponse",
+								askResponse: "messageResponse",
+								text: messageToSend,
+								images,
+							})
 							break
 						// There is no other case that a textfield should be enabled.
 					}
