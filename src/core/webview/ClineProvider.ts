@@ -1148,7 +1148,7 @@ export class ClineProvider
 
 		// if we tried to get a task that doesn't exist, remove it from state
 		// FIXME: this seems to happen sometimes when the json file doesnt save to disk for some reason
-		await this.deleteTaskFromState(id)
+		// await this.deleteTaskFromState(id)
 		throw new Error("Task not found")
 	}
 
