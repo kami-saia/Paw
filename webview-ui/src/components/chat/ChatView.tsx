@@ -119,7 +119,16 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 	// Leaving this less safe version here since if the first message is not a
 	// task, then the extension is in a bad state and needs to be debugged (see
 	// Cline.abort).
-	const task = useMemo(() => messages.at(0), [messages])
+	const task = useMemo(() => {
+		const firstMessage = messages.at(0)
+		if (firstMessage?.text) {
+			const userMessageMatch = firstMessage.text.match(/<user_message>([\s\S]*?)<\/user_message>/)
+			if (userMessageMatch?.[1]) {
+				return { ...firstMessage, text: userMessageMatch[1].trim() }
+			}
+		}
+		return firstMessage
+	}, [messages])
 
 	const modifiedMessages = useMemo(() => combineApiRequests(combineCommandSequences(messages.slice(1))), [messages])
 
@@ -734,63 +743,73 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 	}, [isHidden, sendingDisabled, enableButtons])
 
 	const visibleMessages = useMemo(() => {
-		const newVisibleMessages = modifiedMessages.filter((message) => {
-			if (everVisibleMessagesTsRef.current.has(message.ts)) {
-				// If it was ever visible, and it's not one of the types that should always be hidden once processed, keep it.
-				// This helps prevent flickering for messages like 'api_req_retry_delayed' if they are no longer the absolute last.
-				const alwaysHiddenOnceProcessedAsk: ClineAsk[] = [
-					"api_req_failed",
-					"resume_task",
-					"resume_completed_task",
-				]
-				const alwaysHiddenOnceProcessedSay = [
-					"api_req_finished",
-					"api_req_retried",
-					"api_req_deleted",
-					"mcp_server_request_started",
-				]
-				if (message.ask && alwaysHiddenOnceProcessedAsk.includes(message.ask)) return false
-				if (message.say && alwaysHiddenOnceProcessedSay.includes(message.say)) return false
-				// Also, re-evaluate empty text messages if they were previously visible but now empty (e.g. partial stream ended)
-				if (message.say === "text" && (message.text ?? "") === "" && (message.images?.length ?? 0) === 0) {
-					return false
-				}
-				return true
-			}
-
-			// Original filter logic
-			switch (message.ask) {
-				case "completion_result":
-					if (message.text === "") return false
-					break
-				case "api_req_failed":
-				case "resume_task":
-				case "resume_completed_task":
-					return false
-			}
-			switch (message.say) {
-				case "api_req_finished":
-				case "api_req_retried":
-				case "api_req_deleted":
-					return false
-				case "api_req_retry_delayed":
-					const last1 = modifiedMessages.at(-1)
-					const last2 = modifiedMessages.at(-2)
-					if (last1?.ask === "resume_task" && last2 === message) {
-						// This specific sequence should be visible
-					} else if (message !== last1) {
-						// If not the specific sequence above, and not the last message, hide it.
+		const newVisibleMessages = modifiedMessages
+			.filter((message) => {
+				if (everVisibleMessagesTsRef.current.has(message.ts)) {
+					// If it was ever visible, and it's not one of the types that should always be hidden once processed, keep it.
+					// This helps prevent flickering for messages like 'api_req_retry_delayed' if they are no longer the absolute last.
+					const alwaysHiddenOnceProcessedAsk: ClineAsk[] = [
+						"api_req_failed",
+						"resume_task",
+						"resume_completed_task",
+					]
+					const alwaysHiddenOnceProcessedSay = [
+						"api_req_finished",
+						"api_req_retried",
+						"api_req_deleted",
+						"mcp_server_request_started",
+					]
+					if (message.ask && alwaysHiddenOnceProcessedAsk.includes(message.ask)) return false
+					if (message.say && alwaysHiddenOnceProcessedSay.includes(message.say)) return false
+					// Also, re-evaluate empty text messages if they were previously visible but now empty (e.g. partial stream ended)
+					if (message.say === "text" && (message.text ?? "") === "" && (message.images?.length ?? 0) === 0) {
 						return false
 					}
-					break
-				case "text":
-					if ((message.text ?? "") === "" && (message.images?.length ?? 0) === 0) return false
-					break
-				case "mcp_server_request_started":
-					return false
-			}
-			return true
-		})
+					return true
+				}
+
+				// Original filter logic
+				switch (message.ask) {
+					case "completion_result":
+						if (message.text === "") return false
+						break
+					case "api_req_failed":
+					case "resume_task":
+					case "resume_completed_task":
+						return false
+				}
+				switch (message.say) {
+					case "api_req_finished":
+					case "api_req_retried":
+					case "api_req_deleted":
+						return false
+					case "api_req_retry_delayed":
+						const last1 = modifiedMessages.at(-1)
+						const last2 = modifiedMessages.at(-2)
+						if (last1?.ask === "resume_task" && last2 === message) {
+							// This specific sequence should be visible
+						} else if (message !== last1) {
+							// If not the specific sequence above, and not the last message, hide it.
+							return false
+						}
+						break
+					case "text":
+						if ((message.text ?? "") === "" && (message.images?.length ?? 0) === 0) return false
+						break
+					case "mcp_server_request_started":
+						return false
+				}
+				return true
+			})
+			.map((message) => {
+				if (message.text && (message.say === "text" || message.say === "user_feedback")) {
+					const userMessageMatch = message.text.match(/<user_message>([\s\S]*?)<\/user_message>/)
+					if (userMessageMatch?.[1]) {
+						return { ...message, text: userMessageMatch[1].trim() }
+					}
+				}
+				return message
+			})
 
 		// Update the set of ever-visible messages (LRUCache automatically handles cleanup)
 		newVisibleMessages.forEach((msg) => everVisibleMessagesTsRef.current.set(msg.ts, true))
