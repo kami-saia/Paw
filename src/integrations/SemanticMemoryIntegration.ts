@@ -278,12 +278,16 @@ export class SemanticMemoryIntegration {
 				response.content[0].type === "text"
 			) {
 				const resultPayload = JSON.parse(response.content[0].text)
-				if (resultPayload.success && typeof resultPayload.identity === "string") {
+				if (
+					resultPayload.success &&
+					typeof resultPayload.identity === "object" &&
+					resultPayload.identity !== null
+				) {
 					console.log(`[SemanticMemoryIntegration Task ${this.task.taskId}] get_core_identity successful.`)
-					return resultPayload.identity
+					return JSON.stringify(resultPayload.identity, null, 2)
 				} else {
 					console.warn(
-						`[SemanticMemoryIntegration Task ${this.task.taskId}] get_core_identity call was not successful or identity is not a string:`,
+						`[SemanticMemoryIntegration Task ${this.task.taskId}] get_core_identity call was not successful or identity is not an object:`,
 						resultPayload,
 					)
 				}

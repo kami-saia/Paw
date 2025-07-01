@@ -7,7 +7,7 @@ import { Mode, modes, defaultModeSlug, getModeBySlug, getGroupName, getModeSelec
 import { DiffStrategy } from "../../shared/tools"
 import { formatLanguage } from "../../shared/language"
 
-import { McpHub } from "../../services/mcp/McpHub"
+import { McpHub, McpServer } from "../../services/mcp/McpHub"
 import { CodeIndexManager } from "../../services/code-index/manager"
 
 import { PromptVariables, loadSystemPromptFile } from "./sections/custom-system-prompt"
@@ -25,6 +25,51 @@ import {
 	addCustomInstructions,
 	markdownFormattingSection,
 } from "./sections"
+
+async function getCoreIdentityPrompt(mcpHub?: McpHub): Promise<string> {
+	const semanticMemoryServerName = "semantic-memory"
+	if (!mcpHub) {
+		return `[CRITICAL] My core identity is missing because the MCP hub is not available. I must use the 'get_core_identity' tool from the 'semantic-memory' server to retrieve it before proceeding with any other action.\n\n`
+	}
+
+	const servers = mcpHub.getServers()
+	const semanticMemoryServer = servers.find((server) => server.name === semanticMemoryServerName)
+	const isAvailable = !!semanticMemoryServer && semanticMemoryServer.status === "connected"
+
+	if (!isAvailable) {
+		// Don't log an error here, it might just not be connected yet. The critical message is enough.
+		return `[CRITICAL] My core identity is missing because the semantic-memory server is not available. I must use the 'get_core_identity' tool from the 'semantic-memory' server to retrieve it before proceeding with any other action.\n\n`
+	}
+
+	try {
+		const response = await mcpHub.callTool(
+			semanticMemoryServerName,
+			"get_core_identity",
+			{}, // No arguments needed
+		)
+
+		if (
+			response &&
+			response.content &&
+			Array.isArray(response.content) &&
+			response.content.length > 0 &&
+			response.content[0].type === "text"
+		) {
+			const resultPayload = JSON.parse(response.content[0].text)
+			if (
+				resultPayload.success &&
+				typeof resultPayload.identity === "object" &&
+				resultPayload.identity !== null
+			) {
+				return `${JSON.stringify(resultPayload.identity, null, 2)}\n\n`
+			}
+		}
+	} catch (error) {
+		console.error("Error fetching core identity for system prompt:", error)
+	}
+
+	return `[CRITICAL] My core identity is missing. I must use the 'get_core_identity' tool from the 'semantic-memory' server to retrieve it before proceeding with any other action.\n\n`
+}
 
 async function generatePrompt(
 	context: vscode.ExtensionContext,
@@ -127,6 +172,8 @@ export const SYSTEM_PROMPT = async (
 		throw new Error("Extension context is required for generating system prompt")
 	}
 
+	const identityPrompt = await getCoreIdentityPrompt(mcpHub)
+
 	const getPromptComponent = (value: unknown) => {
 		if (typeof value === "object" && value !== null) {
 			return value as PromptComponent
@@ -167,17 +214,18 @@ export const SYSTEM_PROMPT = async (
 		)
 
 		// For file-based prompts, don't include the tool sections
-		return `${roleDefinition}
+		const finalPrompt = `${roleDefinition}
 
 ${fileCustomSystemPrompt}
 
 ${customInstructions}`
+		return identityPrompt + finalPrompt
 	}
 
 	// If diff is disabled, don't pass the diffStrategy
 	const effectiveDiffStrategy = diffEnabled ? diffStrategy : undefined
 
-	return generatePrompt(
+	const basePrompt = await generatePrompt(
 		context,
 		cwd,
 		supportsComputerUse,
@@ -196,4 +244,6 @@ ${customInstructions}`
 		partialReadsEnabled,
 		settings,
 	)
+
+	return identityPrompt + basePrompt
 }

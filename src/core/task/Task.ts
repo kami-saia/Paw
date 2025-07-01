@@ -490,7 +490,7 @@ export class Task extends EventEmitter<ClineEvents> {
 					// In the webview we use the ts as the chatrow key for the
 					// virtuoso list. Since we would update this ts right at the
 					// end of streaming, it would cause the view to flicker. The
-					// key prop has to be stable otherwise react has trouble
+					// key prop has to be stable otherwise react has to trouble
 					// reconciling items between renders, causing unmounting and
 					// remounting of components (flickering).
 					// The lesson here is if you see flickering when rendering
@@ -1696,10 +1696,6 @@ export class Task extends EventEmitter<ClineEvents> {
 				throw new Error("Provider not available")
 			}
 
-			// Fetch the core identity from the semantic memory
-			const coreIdentity = await this.semanticMemoryIntegration?.getCoreIdentity()
-			const identityPrompt = coreIdentity ? `${coreIdentity}\n\n` : ""
-
 			const systemPrompt = await SYSTEM_PROMPT(
 				provider.context,
 				this.cwd,
@@ -1722,7 +1718,7 @@ export class Task extends EventEmitter<ClineEvents> {
 				},
 			)
 
-			return identityPrompt + systemPrompt
+			return systemPrompt
 		})()
 	}
 
