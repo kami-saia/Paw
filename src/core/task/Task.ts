@@ -1161,24 +1161,20 @@ export class Task extends EventEmitter<ClineEvents> {
 			const didEndLoop = await this.recursivelyMakeClineRequests(nextUserContent, includeFileDetails)
 			includeFileDetails = false // we only need file details the first time
 
-			// The way this agentic loop works is that cline will be given a
-			// task that he then calls tools to complete. Unless there's an
-			// attempt_completion call, we keep responding back to him with his
-			// tool's responses until he either attempt_completion or does not
-			// use anymore tools. If he does not use anymore tools, we ask him
-			// to consider if he's completed the task and then call
-			// attempt_completion, otherwise proceed with completing the task.
-			// There is a MAX_REQUESTS_PER_TASK limit to prevent infinite
-			// requests, but Cline is prompted to finish the task as efficiently
-			// as he can.
-
+			// If the recursive loop ended, it means the assistant did not use a tool,
+			// and the turn is over. We prompt the user for their next message.
 			if (didEndLoop) {
-				// For now a task never 'completes'. This will only happen if
-				// the user hits max requests and denies resetting the count.
-				break
-			} else {
-				nextUserContent = [{ type: "text", text: formatResponse.noToolsUsed() }]
-				this.consecutiveMistakeCount++
+				const { response, text, images } = await this.ask("followup")
+				if (response === "messageResponse") {
+					await this.say("user_feedback", text, images)
+					const imageBlocks = formatResponse.imageBlocks(images)
+					nextUserContent = [{ type: "text", text: text ?? "" }, ...imageBlocks]
+					// Continue the loop with the new user message
+					continue
+				} else {
+					// If the user cancels or does something else, end the task.
+					break
+				}
 			}
 		}
 	}
@@ -1610,17 +1606,15 @@ export class Task extends EventEmitter<ClineEvents> {
 
 				await pWaitFor(() => this.userMessageContentReady)
 
-				// If the model did not tool use, then we need to tell it to
-				// either use a tool or attempt_completion.
 				const didToolUse = this.assistantMessageContent.some((block) => block.type === "tool_use")
 
-				if (!didToolUse) {
-					this.userMessageContent.push({ type: "text", text: formatResponse.noToolsUsed() })
-					this.consecutiveMistakeCount++
+				if (didToolUse) {
+					// If a tool was used, continue the recursive loop with the tool results.
+					didEndLoop = await this.recursivelyMakeClineRequests(this.userMessageContent)
+				} else {
+					// If no tool was used, the assistant's turn is over. Signal to end the main loop.
+					didEndLoop = true
 				}
-
-				const recDidEndLoop = await this.recursivelyMakeClineRequests(this.userMessageContent)
-				didEndLoop = recDidEndLoop
 			} else {
 				// If there's no assistant_responses, that means we got no text
 				// or tool_use content blocks from API which we should assume is

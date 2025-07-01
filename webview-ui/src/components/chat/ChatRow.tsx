@@ -245,13 +245,6 @@ export const ChatRowContent = ({
 					),
 				]
 			case "followup":
-				return [
-					<span
-						className="codicon codicon-question"
-						style={{ color: normalColor, marginBottom: "-1.5px" }}
-					/>,
-					<span style={{ color: normalColor, fontWeight: "bold" }}>{t("chat:questions.hasQuestion")}</span>,
-				]
 			default:
 				return [null, null]
 		}
@@ -1206,7 +1199,7 @@ export const ChatRowContent = ({
 									{title}
 								</div>
 							)}
-							<div style={{ paddingTop: 10, paddingBottom: 15 }}>
+							<div style={{ paddingTop: 10 }}>
 								<Markdown
 									markdown={message.partial === true ? message?.text : followUpData?.question}
 								/>
