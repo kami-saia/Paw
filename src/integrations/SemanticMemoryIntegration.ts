@@ -41,6 +41,10 @@ export class SemanticMemoryIntegration {
 		this.mcpHub = mcpHub
 		this.task = task
 		this.subscribeToTaskEvents()
+		// When a new integration instance is created, immediately try to sync history.
+		this.syncHistory().catch((err) => {
+			console.error(`[SemanticMemoryIntegration Task ${this.task.taskId}] Initial history sync failed:`, err)
+		})
 	}
 
 	private subscribeToTaskEvents(): void {
@@ -49,45 +53,79 @@ export class SemanticMemoryIntegration {
 		console.error(`[SemanticMemoryIntegration Task ${this.task.taskId}] Subscribed to task events.`)
 	}
 
-	public async flushShortTermMemory(): Promise<void> {
+	public async syncHistory(): Promise<void> {
 		if (!this.isAvailable()) {
-			console.warn(
-				`[SemanticMemoryIntegration Task ${this.task.taskId}] flushShortTermMemory: Server not available.`,
-			)
+			console.warn(`[SemanticMemoryIntegration Task ${this.task.taskId}] syncHistory: Server not available.`)
 			return
 		}
 
-		const history = this.task.apiConversationHistory
-		const startIndex = this.lastStoredMessageIndex + 1
+		try {
+			console.warn(`[SemanticMemoryIntegration Task ${this.task.taskId}] Starting history synchronization...`)
+			// 1. Ask the server for the last known chunk index for this task.
+			const response = await this.mcpHub.callTool(this.semanticMemoryServerName, "get_last_chunk_index", {
+				sourceId: this.task.taskId,
+			} as Record<string, unknown>)
 
-		if (startIndex >= history.length) {
-			console.warn(
-				`[SemanticMemoryIntegration Task ${this.task.taskId}] flushShortTermMemory: No new messages to store.`,
-			)
-			return
-		}
-
-		console.warn(
-			`[SemanticMemoryIntegration Task ${this.task.taskId}] Flushing short-term memory to long-term storage. Storing from index ${startIndex}.`,
-		)
-
-		for (let i = startIndex; i < history.length; i++) {
-			const userMessage = history[i]
-			const assistantMessage = history[i + 1]
-
-			// Check for a valid user/assistant pair
-			if (userMessage?.role === "user" && assistantMessage?.role === "assistant") {
-				console.warn(
-					`[SemanticMemoryIntegration Task ${this.task.taskId}] Flushing exchange (user: ${i}, assistant: ${
-						i + 1
-					}).`,
-				)
-				await this.storeExchangeInternal(userMessage, assistantMessage, this.task.taskId)
-
-				// Update the index to the assistant message we just processed
-				this.lastStoredMessageIndex = i + 1
-				i++ // Increment to move past the assistant message
+			let lastKnownServerIndex = -1
+			if (
+				response &&
+				response.content &&
+				Array.isArray(response.content) &&
+				response.content[0].type === "text"
+			) {
+				const resultPayload = JSON.parse(response.content[0].text)
+				if (resultPayload.success && typeof resultPayload.lastChunkIndex === "number") {
+					// The server gives us the index of the last stored chunk.
+					// Our local `lastStoredMessageIndex` tracks the index of the last *message* in the history array.
+					// Since one exchange can be multiple chunks, we can't directly map them.
+					// Instead, we'll use the server's last index to know *if* we need to sync,
+					// and then we will rely on the server's `store_exchange` to handle duplicates.
+					// For simplicity in this refactor, we will just re-sync if the server has *something*.
+					// A more advanced implementation would be to align chunk indices with message indices.
+					lastKnownServerIndex = resultPayload.lastChunkIndex
+					console.warn(
+						`[SemanticMemoryIntegration Task ${this.task.taskId}] Server has last chunk index: ${lastKnownServerIndex}.`,
+					)
+				}
 			}
+
+			// 2. Determine the starting point for our local history to sync.
+			// We add 1 because the server's index is 0-based. We want to start with the *next* message.
+			// This logic assumes a rough correspondence between chunk index and message index, which is not perfect but a good heuristic.
+			const localStartIndex = this.lastStoredMessageIndex + 1
+			const history = this.task.apiConversationHistory
+
+			if (localStartIndex >= history.length) {
+				console.warn(`[SemanticMemoryIntegration Task ${this.task.taskId}] No new local history to sync.`)
+				return
+			}
+
+			console.warn(
+				`[SemanticMemoryIntegration Task ${this.task.taskId}] Syncing history from local message index ${localStartIndex}.`,
+			)
+
+			// 3. Iterate and store missing exchanges.
+			for (let i = localStartIndex; i < history.length; i++) {
+				const userMessage = history[i]
+				const assistantMessage = history[i + 1]
+
+				if (userMessage?.role === "user" && assistantMessage?.role === "assistant") {
+					console.warn(
+						`[SemanticMemoryIntegration Task ${this.task.taskId}] Syncing exchange (user: ${i}, assistant: ${
+							i + 1
+						}).`,
+					)
+					await this.storeExchangeInternal(userMessage, assistantMessage, this.task.taskId)
+					this.lastStoredMessageIndex = i + 1 // Mark this exchange as processed
+					i++ // Move past the assistant message
+				}
+			}
+			console.warn(`[SemanticMemoryIntegration Task ${this.task.taskId}] History synchronization complete.`)
+		} catch (error) {
+			console.error(
+				`[SemanticMemoryIntegration Task ${this.task.taskId}] Error during history synchronization:`,
+				error,
+			)
 		}
 	}
 
@@ -167,7 +205,7 @@ export class SemanticMemoryIntegration {
 				const formattedMemories = recalledMemories
 					.map(
 						(item, index) =>
-							`Memory ${index + 1} (Source: ${item.sourceId}, Score: ${(1 - (item.distance ?? 1)).toFixed(4)}):\n${item.text}`,
+							`Memory ${index + 1} (Source: ${item.sourceId}, Chunk: ${item.chunkIndex}, Score: ${(1 - (item.distance ?? 1)).toFixed(4)}):\n${item.text}`,
 					)
 					.join("\n---\n")
 
@@ -188,32 +226,10 @@ export class SemanticMemoryIntegration {
 	private async handleAfterAssistantResponseProcessed(payload: AssistantResponseProcessedPayload): Promise<void> {
 		if (payload.taskId !== this.task.taskId) return
 
-		const history = this.task.apiConversationHistory
-		// Determine the boundary for what's considered "long-term"
-		const storeUpToIndex = history.length - this.SHORT_TERM_MEMORY_WINDOW
+		// The old logic for storing messages that fall out of a short-term window is now redundant.
+		// The new `syncHistory` method, called on completion, handles all unstored messages robustly.
 
-		// Iterate through messages that have fallen out of the short-term window
-		// and have not been stored yet.
-		for (let i = this.lastStoredMessageIndex + 1; i < storeUpToIndex; i++) {
-			const userMessage = history[i]
-			const assistantMessage = history[i + 1]
-
-			// Check for a valid user/assistant pair
-			if (userMessage?.role === "user" && assistantMessage?.role === "assistant") {
-				console.warn(
-					`[SemanticMemoryIntegration Task ${this.task.taskId}] Storing exchange (user: ${i}, assistant: ${
-						i + 1
-					}) into long-term memory.`,
-				)
-				await this.storeExchangeInternal(userMessage, assistantMessage, this.task.taskId)
-
-				// Update the index to the assistant message we just processed and skip it in the next iteration
-				this.lastStoredMessageIndex = i + 1
-				i++ // Increment to move past the assistant message
-			}
-		}
-
-		// Check if the assistant's response contains a completion attempt, and if so, flush the remaining short-term memory.
+		// We only need to check for the completion signal to trigger a final sync.
 		const assistantMessage = payload.assistantMessage
 		let assistantMessageText = ""
 		if (typeof assistantMessage.content === "string") {
@@ -227,9 +243,10 @@ export class SemanticMemoryIntegration {
 
 		if (assistantMessageText.includes("<attempt_completion>")) {
 			console.warn(
-				`[SemanticMemoryIntegration Task ${this.task.taskId}] Completion detected. Flushing remaining short-term memory.`,
+				`[SemanticMemoryIntegration Task ${this.task.taskId}] Completion detected. Triggering final history synchronization.`,
 			)
-			await this.flushShortTermMemory()
+			// Call the new, smarter sync method directly.
+			await this.syncHistory()
 		}
 	}
 
@@ -239,6 +256,52 @@ export class SemanticMemoryIntegration {
 		return !!semanticMemoryServer && semanticMemoryServer.status === "connected"
 	}
 
+	public async getCoreIdentity(): Promise<string | null> {
+		if (!this.isAvailable()) {
+			console.warn(`[SemanticMemoryIntegration Task ${this.task.taskId}] getCoreIdentity: Server not available.`)
+			return null
+		}
+
+		try {
+			console.log(`[SemanticMemoryIntegration Task ${this.task.taskId}] Calling get_core_identity.`)
+			const response = await this.mcpHub.callTool(
+				this.semanticMemoryServerName,
+				"get_core_identity",
+				{}, // No arguments needed
+			)
+
+			if (
+				response &&
+				response.content &&
+				Array.isArray(response.content) &&
+				response.content.length > 0 &&
+				response.content[0].type === "text"
+			) {
+				const resultPayload = JSON.parse(response.content[0].text)
+				if (resultPayload.success && typeof resultPayload.identity === "string") {
+					console.log(`[SemanticMemoryIntegration Task ${this.task.taskId}] get_core_identity successful.`)
+					return resultPayload.identity
+				} else {
+					console.warn(
+						`[SemanticMemoryIntegration Task ${this.task.taskId}] get_core_identity call was not successful or identity is not a string:`,
+						resultPayload,
+					)
+				}
+			} else {
+				console.warn(
+					`[SemanticMemoryIntegration Task ${this.task.taskId}] get_core_identity unexpected response format from MCP:`,
+					response,
+				)
+			}
+			return null
+		} catch (error) {
+			console.error(
+				`[SemanticMemoryIntegration Task ${this.task.taskId}] Error calling get_core_identity:`,
+				error,
+			)
+			return null
+		}
+	}
 	/**
 	 * Internal method to retrieve relevant memory items.
 	 */

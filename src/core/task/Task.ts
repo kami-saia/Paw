@@ -1696,7 +1696,11 @@ export class Task extends EventEmitter<ClineEvents> {
 				throw new Error("Provider not available")
 			}
 
-			return SYSTEM_PROMPT(
+			// Fetch the core identity from the semantic memory
+			const coreIdentity = await this.semanticMemoryIntegration?.getCoreIdentity()
+			const identityPrompt = coreIdentity ? `${coreIdentity}\n\n` : ""
+
+			const systemPrompt = await SYSTEM_PROMPT(
 				provider.context,
 				this.cwd,
 				(this.api.getModel().info.supportsComputerUse ?? false) && (browserToolEnabled ?? true),
@@ -1717,6 +1721,8 @@ export class Task extends EventEmitter<ClineEvents> {
 					maxConcurrentFileReads,
 				},
 			)
+
+			return identityPrompt + systemPrompt
 		})()
 	}
 
