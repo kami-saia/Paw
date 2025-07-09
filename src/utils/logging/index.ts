@@ -24,6 +24,4 @@ const noopLogger = {
  * Uses CompactLogger for normal operation, switches to noop logger in Jest test environment
  */
 export const logger =
-	process.env.NODE_ENV === "test" || experiments.isEnabled({}, EXPERIMENT_IDS.DEBUG_LOGGING)
-		? new CompactLogger()
-		: noopLogger
+	process.env.NODE_ENV === "test" || process.env.NODE_ENV === "development" ? new CompactLogger() : noopLogger
