@@ -60,6 +60,7 @@ import { getWorkspacePath } from "../../utils/path"
 
 // prompts
 import { formatResponse } from "../prompts/responses"
+import { logger } from "../../utils/logging"
 import { SYSTEM_PROMPT } from "../prompts/system"
 
 // core modules
@@ -1790,6 +1791,15 @@ export class Task extends EventEmitter<ClineEvents> {
 
 			const contextWindow = modelInfo.contextWindow
 
+			logger.debug("--- Token Truncation Debug ---")
+			logger.debug(`Context Tokens: ${contextTokens}`)
+			logger.debug(`Context Window: ${contextWindow}`)
+			logger.debug(`Model Supports Reasoning Budget: ${modelInfo.supportsReasoningBudget}`)
+			logger.debug(`API Configured Max Tokens: ${this.apiConfiguration.modelMaxTokens}`)
+			logger.debug(`Default Thinking Model Max Tokens: ${DEFAULT_THINKING_MODEL_MAX_TOKENS}`)
+			logger.debug(`Final maxTokens for truncation: ${maxTokens}`)
+			logger.debug(`History length before truncation: ${this.apiConversationHistory.length}`)
+
 			const truncateResult = await truncateConversationIfNeeded({
 				messages: this.apiConversationHistory,
 				totalTokens: contextTokens,
@@ -1803,6 +1813,9 @@ export class Task extends EventEmitter<ClineEvents> {
 				customCondensingPrompt,
 				condensingApiHandler,
 			})
+
+			logger.debug(`History length after truncation: ${truncateResult.messages.length}`)
+			logger.debug("--- End Token Truncation Debug ---")
 			if (truncateResult.messages !== this.apiConversationHistory) {
 				await this.overwriteApiConversationHistory(truncateResult.messages)
 			}

@@ -3,6 +3,7 @@
  * Provides a default logger instance with Jest environment detection
  */
 
+import { experiments, EXPERIMENT_IDS } from "../../shared/experiments"
 import { CompactLogger } from "./CompactLogger"
 
 /**
@@ -22,4 +23,7 @@ const noopLogger = {
  * Default logger instance
  * Uses CompactLogger for normal operation, switches to noop logger in Jest test environment
  */
-export const logger = process.env.NODE_ENV === "test" ? new CompactLogger() : noopLogger
+export const logger =
+	process.env.NODE_ENV === "test" || experiments.isEnabled({}, EXPERIMENT_IDS.DEBUG_LOGGING)
+		? new CompactLogger()
+		: noopLogger
