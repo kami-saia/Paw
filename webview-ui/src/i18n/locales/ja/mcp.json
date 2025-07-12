@@ -1,6 +1,7 @@
 {
 	"title": "MCPサーバー",
 	"done": "完了",
+	"marketplace": "MCPマーケットプレイス",
 	"description": "<0>Model Context Protocol</0>は、ローカルで実行されているMCPサーバーとの通信を可能にし、Rooの機能を拡張するための追加ツールやリソースを提供します。<1>コミュニティによって作成されたサーバー</1>を使用したり、Rooにワークフロー専用の新しいツールを作成するよう依頼したりできます（例：「最新のnpmドキュメントを取得するツールを追加する」）。",
 	"instructions": "手順",
 	"enableToggle": {
@@ -17,8 +18,9 @@
 	"learnMoreEditingSettings": "MCP設定ファイルの編集方法を詳しく見る",
 	"tool": {
 		"alwaysAllow": "常に許可",
-		"parameters": "パラメーター",
-		"noDescription": "説明なし"
+		"parameters": "パラメータ",
+		"noDescription": "説明なし",
+		"togglePromptInclusion": "プロンプトへの含有を切り替える"
 	},
 	"tabs": {
 		"tools": "ツール",

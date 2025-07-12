@@ -59,6 +59,8 @@ export const ModelPicker = ({
 	const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
 	const isInitialized = useRef(false)
 	const searchInputRef = useRef<HTMLInputElement>(null)
+	const selectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+	const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
 	const modelIds = useMemo(() => {
 		const filteredModels = filterModels(models, apiConfiguration.apiProvider, organizationAllowList)
@@ -68,7 +70,7 @@ export const ModelPicker = ({
 
 	const { id: selectedModelId, info: selectedModelInfo } = useSelectedModel(apiConfiguration)
 
-	const [searchValue, setSearchValue] = useState(selectedModelId || "")
+	const [searchValue, setSearchValue] = useState("")
 
 	const onSelect = useCallback(
 		(modelId: string) => {
@@ -79,24 +81,31 @@ export const ModelPicker = ({
 			setOpen(false)
 			setApiConfigurationField(modelIdKey, modelId)
 
+			// Clear any existing timeout
+			if (selectTimeoutRef.current) {
+				clearTimeout(selectTimeoutRef.current)
+			}
+
 			// Delay to ensure the popover is closed before setting the search value.
-			setTimeout(() => setSearchValue(modelId), 100)
+			selectTimeoutRef.current = setTimeout(() => setSearchValue(""), 100)
 		},
 		[modelIdKey, setApiConfigurationField],
 	)
 
-	const onOpenChange = useCallback(
-		(open: boolean) => {
-			setOpen(open)
+	const onOpenChange = useCallback((open: boolean) => {
+		setOpen(open)
 
-			// Abandon the current search if the popover is closed.
-			if (!open) {
-				// Delay to ensure the popover is closed before setting the search value.
-				setTimeout(() => setSearchValue(selectedModelId), 100)
+		// Abandon the current search if the popover is closed.
+		if (!open) {
+			// Clear any existing timeout
+			if (closeTimeoutRef.current) {
+				clearTimeout(closeTimeoutRef.current)
 			}
-		},
-		[selectedModelId],
-	)
+
+			// Clear the search value when closing instead of prefilling it
+			closeTimeoutRef.current = setTimeout(() => setSearchValue(""), 100)
+		}
+	}, [])
 
 	const onClearSearch = useCallback(() => {
 		setSearchValue("")
@@ -111,6 +120,18 @@ export const ModelPicker = ({
 
 		isInitialized.current = true
 	}, [modelIds, setApiConfigurationField, modelIdKey, selectedModelId, defaultModelId])
+
+	// Cleanup timeouts on unmount to prevent test flakiness
+	useEffect(() => {
+		return () => {
+			if (selectTimeoutRef.current) {
+				clearTimeout(selectTimeoutRef.current)
+			}
+			if (closeTimeoutRef.current) {
+				clearTimeout(closeTimeoutRef.current)
+			}
+		}
+	}, [])
 
 	return (
 		<>

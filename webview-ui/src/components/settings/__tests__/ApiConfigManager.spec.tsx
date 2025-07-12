@@ -1,6 +1,6 @@
 // npx vitest src/components/settings/__tests__/ApiConfigManager.spec.tsx
 
-import { render, screen, fireEvent, within } from "@testing-library/react"
+import { render, screen, fireEvent, within } from "@/utils/test-utils"
 
 import ApiConfigManager from "../ApiConfigManager"
 
@@ -41,6 +41,7 @@ vitest.mock("@/components/ui", () => ({
 			data-testid={dataTestId}
 		/>
 	),
+	StandardTooltip: ({ children, content }: any) => <div title={content}>{children}</div>,
 	// New components for searchable dropdown
 	Popover: ({ children, open }: any) => (
 		<div className="popover" style={{ position: "relative" }}>
@@ -87,6 +88,21 @@ vitest.mock("@/components/ui", () => ({
 		<option value={value} className="select-item-mock">
 			{children}
 		</option>
+	),
+	SearchableSelect: ({ value, onValueChange, options, placeholder, "data-testid": dataTestId }: any) => (
+		<select
+			value={value}
+			onChange={(e) => {
+				if (onValueChange) onValueChange(e.target.value)
+			}}
+			data-testid={dataTestId || "select-component"}>
+			<option value="">{placeholder || "settings:common.select"}</option>
+			{options?.map((option: any) => (
+				<option key={option.value} value={option.value}>
+					{option.label}
+				</option>
+			))}
+		</select>
 	),
 }))
 
@@ -242,20 +258,11 @@ describe("ApiConfigManager", () => {
 	it("allows selecting a different config", () => {
 		render(<ApiConfigManager {...defaultProps} />)
 
-		// Click the select component to open the dropdown
-		const selectButton = screen.getByTestId("select-component")
-		fireEvent.click(selectButton)
+		// The SearchableSelect mock renders as a simple select element
+		const selectElement = screen.getByTestId("select-component") as HTMLSelectElement
 
-		// Find all command items and click the one with "Another Config"
-		const commandItems = document.querySelectorAll(".command-item")
-		// Find the item with "Another Config" text
-		const anotherConfigItem = Array.from(commandItems).find((item) => item.textContent?.includes("Another Config"))
-
-		if (!anotherConfigItem) {
-			throw new Error("Could not find 'Another Config' option")
-		}
-
-		fireEvent.click(anotherConfigItem)
+		// Change the select value to "Another Config"
+		fireEvent.change(selectElement, { target: { value: "Another Config" } })
 
 		expect(mockOnSelectConfig).toHaveBeenCalledWith("Another Config")
 	})

@@ -44,27 +44,82 @@
 		"selectProviderPlaceholder": "Seleziona fornitore",
 		"openaiProvider": "OpenAI",
 		"ollamaProvider": "Ollama",
+		"geminiProvider": "Gemini",
+		"geminiApiKeyLabel": "Chiave API:",
+		"geminiApiKeyPlaceholder": "Inserisci la tua chiave API Gemini",
 		"openaiCompatibleProvider": "Compatibile con OpenAI",
-		"openaiCompatibleBaseUrlLabel": "URL di base:",
-		"openaiCompatibleApiKeyLabel": "Chiave API:",
-		"openaiCompatibleModelDimensionLabel": "Dimensione Embedding:",
-		"openaiCompatibleModelDimensionPlaceholder": "es., 1536",
-		"openaiCompatibleModelDimensionDescription": "La dimensione dell'embedding (dimensione di output) per il tuo modello. Controlla la documentazione del tuo provider per questo valore. Valori comuni: 384, 768, 1536, 3072.",
-		"openaiKeyLabel": "Chiave OpenAI:",
+		"openAiKeyLabel": "Chiave API OpenAI",
+		"openAiKeyPlaceholder": "Inserisci la tua chiave API OpenAI",
+		"openAiCompatibleBaseUrlLabel": "URL di base",
+		"openAiCompatibleApiKeyLabel": "Chiave API",
+		"openAiCompatibleApiKeyPlaceholder": "Inserisci la tua chiave API",
+		"openAiCompatibleModelDimensionLabel": "Dimensione Embedding:",
+		"modelDimensionLabel": "Dimensione del modello",
+		"openAiCompatibleModelDimensionPlaceholder": "es., 1536",
+		"openAiCompatibleModelDimensionDescription": "La dimensione dell'embedding (dimensione di output) per il tuo modello. Controlla la documentazione del tuo provider per questo valore. Valori comuni: 384, 768, 1536, 3072.",
 		"modelLabel": "Modello",
 		"selectModelPlaceholder": "Seleziona modello",
 		"ollamaUrlLabel": "URL Ollama:",
 		"qdrantUrlLabel": "URL Qdrant",
 		"qdrantKeyLabel": "Chiave Qdrant:",
-		"startIndexingButton": "Avvia indicizzazione",
-		"clearIndexDataButton": "Cancella dati indice",
+		"startIndexingButton": "Avvia",
+		"clearIndexDataButton": "Cancella indice",
 		"unsavedSettingsMessage": "Per favore salva le tue impostazioni prima di avviare il processo di indicizzazione.",
 		"clearDataDialog": {
 			"title": "Sei sicuro?",
 			"description": "Questa azione non può essere annullata. Eliminerà permanentemente i dati di indice del tuo codice.",
 			"cancelButton": "Annulla",
 			"confirmButton": "Cancella dati"
-		}
+		},
+		"description": "Configura le impostazioni di indicizzazione del codebase per abilitare la ricerca semantica del tuo progetto. <0>Scopri di più</0>",
+		"statusTitle": "Stato",
+		"settingsTitle": "Impostazioni di indicizzazione",
+		"disabledMessage": "L'indicizzazione del codebase è attualmente disabilitata. Abilitala nelle impostazioni globali per configurare le opzioni di indicizzazione.",
+		"embedderProviderLabel": "Provider Embedder",
+		"modelPlaceholder": "Inserisci il nome del modello",
+		"selectModel": "Seleziona un modello",
+		"ollamaBaseUrlLabel": "URL base Ollama",
+		"qdrantApiKeyLabel": "Chiave API Qdrant",
+		"qdrantApiKeyPlaceholder": "Inserisci la tua chiave API Qdrant (opzionale)",
+		"setupConfigLabel": "Impostazione",
+		"ollamaUrlPlaceholder": "http://localhost:11434",
+		"openAiCompatibleBaseUrlPlaceholder": "https://api.example.com",
+		"modelDimensionPlaceholder": "1536",
+		"qdrantUrlPlaceholder": "http://localhost:6333",
+		"saveError": "Impossibile salvare le impostazioni",
+		"modelDimensions": "({{dimension}} dimensioni)",
+		"saveSuccess": "Impostazioni salvate con successo",
+		"saving": "Salvataggio...",
+		"saveSettings": "Salva",
+		"indexingStatuses": {
+			"standby": "In attesa",
+			"indexing": "Indicizzazione",
+			"indexed": "Indicizzato",
+			"error": "Errore"
+		},
+		"close": "Chiudi",
+		"validation": {
+			"invalidQdrantUrl": "URL Qdrant non valido",
+			"invalidOllamaUrl": "URL Ollama non valido",
+			"invalidBaseUrl": "URL di base non valido",
+			"qdrantUrlRequired": "È richiesto l'URL di Qdrant",
+			"openaiApiKeyRequired": "È richiesta la chiave API di OpenAI",
+			"modelSelectionRequired": "È richiesta la selezione del modello",
+			"apiKeyRequired": "È richiesta la chiave API",
+			"modelIdRequired": "È richiesto l'ID del modello",
+			"modelDimensionRequired": "È richiesta la dimensione del modello",
+			"geminiApiKeyRequired": "È richiesta la chiave API Gemini",
+			"ollamaBaseUrlRequired": "È richiesto l'URL di base di Ollama",
+			"baseUrlRequired": "È richiesto l'URL di base",
+			"modelDimensionMinValue": "La dimensione del modello deve essere maggiore di 0"
+		},
+		"advancedConfigLabel": "Configurazione avanzata",
+		"searchMinScoreLabel": "Soglia punteggio di ricerca",
+		"searchMinScoreDescription": "Punteggio minimo di somiglianza (0.0-1.0) richiesto per i risultati della ricerca. Valori più bassi restituiscono più risultati ma potrebbero essere meno pertinenti. Valori più alti restituiscono meno risultati ma più pertinenti.",
+		"searchMinScoreResetTooltip": "Ripristina al valore predefinito (0.4)",
+		"searchMaxResultsLabel": "Risultati di ricerca massimi",
+		"searchMaxResultsDescription": "Numero massimo di risultati di ricerca da restituire quando si interroga l'indice del codice. Valori più alti forniscono più contesto ma possono includere risultati meno pertinenti.",
+		"resetToDefault": "Ripristina al valore predefinito"
 	},
 	"autoApprove": {
 		"description": "Permetti a Roo di eseguire automaticamente operazioni senza richiedere approvazione. Abilita queste impostazioni solo se ti fidi completamente dell'IA e comprendi i rischi di sicurezza associati.",
@@ -110,6 +165,11 @@
 			"label": "Sottoattività",
 			"description": "Consenti la creazione e il completamento di attività secondarie senza richiedere approvazione"
 		},
+		"followupQuestions": {
+			"label": "Domanda",
+			"description": "Seleziona automaticamente la prima risposta suggerita per le domande di follow-up dopo il timeout configurato",
+			"timeoutLabel": "Tempo di attesa prima di selezionare automaticamente la prima risposta"
+		},
 		"execute": {
 			"label": "Esegui",
 			"description": "Esegui automaticamente i comandi del terminale consentiti senza richiedere approvazione",
@@ -117,6 +177,10 @@
 			"allowedCommandsDescription": "Prefissi di comando che possono essere auto-eseguiti quando \"Approva sempre operazioni di esecuzione\" è abilitato. Aggiungi * per consentire tutti i comandi (usare con cautela).",
 			"commandPlaceholder": "Inserisci prefisso comando (es. 'git ')",
 			"addButton": "Aggiungi"
+		},
+		"updateTodoList": {
+			"label": "Todo",
+			"description": "La lista delle cose da fare viene aggiornata automaticamente senza approvazione"
 		},
 		"apiRequestLimit": {
 			"title": "Richieste massime",
@@ -143,6 +207,8 @@
 		"cannotDeleteOnlyProfile": "Impossibile eliminare l'unico profilo",
 		"searchPlaceholder": "Cerca profili",
 		"noMatchFound": "Nessun profilo corrispondente trovato",
+		"searchProviderPlaceholder": "Cerca fornitori",
+		"noProviderMatchFound": "Nessun fornitore trovato",
 		"vscodeLmDescription": "L'API del Modello di Linguaggio di VS Code consente di eseguire modelli forniti da altre estensioni di VS Code (incluso, ma non limitato a, GitHub Copilot). Il modo più semplice per iniziare è installare le estensioni Copilot e Copilot Chat dal VS Code Marketplace.",
 		"awsCustomArnUse": "Inserisci un ARN Amazon Bedrock valido per il modello che desideri utilizzare. Esempi di formato:",
 		"awsCustomArnDesc": "Assicurati che la regione nell'ARN corrisponda alla regione AWS selezionata sopra.",
@@ -303,7 +369,14 @@
 			"medium": "Medio",
 			"low": "Basso"
 		},
-		"setReasoningLevel": "Abilita sforzo di ragionamento"
+		"setReasoningLevel": "Abilita sforzo di ragionamento",
+		"claudeCode": {
+			"pathLabel": "Percorso Claude Code",
+			"description": "Percorso facoltativo per la tua CLI Claude Code. Predefinito 'claude' se non impostato.",
+			"placeholder": "Predefinito: claude",
+			"maxTokensLabel": "Token di output massimi",
+			"maxTokensDescription": "Numero massimo di token di output per le risposte di Claude Code. Il valore predefinito è 8000."
+		}
 	},
 	"browser": {
 		"enable": {
@@ -370,7 +443,8 @@
 			"hint": "Vuoto = usa prompt predefinito"
 		},
 		"autoCondenseContext": {
-			"name": "Attiva automaticamente la condensazione intelligente del contesto"
+			"name": "Attiva automaticamente la condensazione intelligente del contesto",
+			"description": "Quando abilitato, Roo condenserà automaticamente il contesto quando viene raggiunta la soglia. Quando disabilitato, puoi ancora attivare manualmente la condensazione del contesto."
 		},
 		"openTabs": {
 			"label": "Limite contesto schede aperte",
@@ -393,6 +467,15 @@
 		"maxConcurrentFileReads": {
 			"label": "Limite letture simultanee",
 			"description": "Numero massimo di file che lo strumento 'read_file' può elaborare contemporaneamente. Valori più alti possono velocizzare la lettura di più file piccoli ma aumentano l'utilizzo della memoria."
+		},
+		"condensingThreshold": {
+			"label": "Soglia di attivazione condensazione",
+			"selectProfile": "Configura soglia per profilo",
+			"defaultProfile": "Predefinito globale (tutti i profili)",
+			"defaultDescription": "Quando il contesto raggiunge questa percentuale, verrà automaticamente condensato per tutti i profili a meno che non abbiano impostazioni personalizzate",
+			"profileDescription": "Soglia personalizzata solo per questo profilo (sovrascrive il predefinito globale)",
+			"inheritDescription": "Questo profilo eredita la soglia predefinita globale ({{threshold}}%)",
+			"usesGlobal": "(usa globale {{threshold}}%)"
 		}
 	},
 	"terminal": {
@@ -500,10 +583,6 @@
 		"MARKETPLACE": {
 			"name": "Abilita Marketplace",
 			"description": "Quando abilitato, puoi installare MCP e modalità personalizzate dal Marketplace."
-		},
-		"DISABLE_COMPLETION_COMMAND": {
-			"name": "Disabilita l'esecuzione dei comandi in attempt_completion",
-			"description": "Se abilitato, lo strumento attempt_completion non eseguirà comandi. Questa è una funzionalità sperimentale per preparare la futura deprecazione dell'esecuzione dei comandi al completamento dell'attività."
 		},
 		"MULTI_FILE_APPLY_DIFF": {
 			"name": "Abilita modifiche di file concorrenti",

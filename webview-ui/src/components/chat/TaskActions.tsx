@@ -5,10 +5,11 @@ import { useTranslation } from "react-i18next"
 import type { HistoryItem } from "@roo-code/types"
 
 import { vscode } from "@/utils/vscode"
-import { useExtensionState } from "@/context/ExtensionStateContext"
+import { useCopyToClipboard } from "@/utils/clipboard"
 
 import { DeleteTaskDialog } from "../history/DeleteTaskDialog"
 import { IconButton } from "./IconButton"
+import { ShareButton } from "./ShareButton"
 
 interface TaskActionsProps {
 	item?: HistoryItem
@@ -18,24 +19,25 @@ interface TaskActionsProps {
 export const TaskActions = ({ item, buttonsDisabled }: TaskActionsProps) => {
 	const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null)
 	const { t } = useTranslation()
-	const { sharingEnabled } = useExtensionState()
+	const { copyWithFeedback, showCopyFeedback } = useCopyToClipboard()
 
 	return (
 		<div className="flex flex-row gap-1">
-			{item?.id && sharingEnabled && (
-				<IconButton
-					iconClass="codicon-link"
-					title={t("chat:task.share")}
-					disabled={buttonsDisabled}
-					onClick={() => vscode.postMessage({ type: "shareCurrentTask" })}
-				/>
-			)}
+			<ShareButton item={item} disabled={buttonsDisabled} />
 			<IconButton
 				iconClass="codicon-desktop-download"
 				title={t("chat:task.export")}
 				disabled={buttonsDisabled}
 				onClick={() => vscode.postMessage({ type: "exportCurrentTask" })}
 			/>
+			{item?.task && (
+				<IconButton
+					iconClass={showCopyFeedback ? "codicon-check" : "codicon-copy"}
+					title={t("history:copyPrompt")}
+					disabled={buttonsDisabled}
+					onClick={(e) => copyWithFeedback(item.task, e)}
+				/>
+			)}
 			{!!item?.size && item.size > 0 && (
 				<>
 					<div className="flex items-center">

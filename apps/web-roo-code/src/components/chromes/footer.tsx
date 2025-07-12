@@ -119,6 +119,15 @@ export function Footer() {
 										</Link>
 									</li>
 									<li>
+										<a
+											href={EXTERNAL_LINKS.SECURITY}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
+											Security
+										</a>
+									</li>
+									<li>
 										<ScrollButton
 											targetId="testimonials"
 											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
@@ -247,6 +256,13 @@ export function Footer() {
 										</a>
 									</li>
 									<li>
+										<Link
+											href="/terms"
+											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
+											Terms of Service
+										</Link>
+									</li>
+									<li>
 										<div className="relative z-10" ref={dropdownRef}>
 											<button
 												onClick={() => setPrivacyDropdownOpen(!privacyDropdownOpen)}
@@ -276,7 +292,7 @@ export function Footer() {
 															href={INTERNAL_LINKS.PRIVACY_POLICY_WEBSITE}
 															onClick={() => setPrivacyDropdownOpen(false)}
 															className="rounded-md px-3 py-2 transition-colors hover:bg-accent/50 hover:text-foreground">
-															Marketing Website
+															Roo Code Cloud
 														</Link>
 													</div>
 												</div>

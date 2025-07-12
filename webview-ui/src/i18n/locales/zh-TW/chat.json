@@ -12,7 +12,16 @@
 		"export": "匯出工作紀錄",
 		"delete": "刪除工作（按住 Shift 並點選可跳過確認）",
 		"condenseContext": "智慧壓縮上下文",
-		"share": "分享工作"
+		"share": "分享工作",
+		"shareWithOrganization": "與組織分享",
+		"shareWithOrganizationDescription": "僅組織成員可存取",
+		"sharePublicly": "公開分享",
+		"sharePubliclyDescription": "任何擁有連結的人都可存取",
+		"connectToCloud": "連接到雲端",
+		"connectToCloudDescription": "登入 Roo Code Cloud 以分享工作",
+		"sharingDisabledByOrganization": "組織已停用分享功能",
+		"shareSuccessOrganization": "組織連結已複製到剪貼簿",
+		"shareSuccessPublic": "公開連結已複製到剪貼簿"
 	},
 	"unpin": "取消置頂",
 	"pin": "置頂",
@@ -75,7 +84,7 @@
 	"onboarding": "<strong>您在此工作區中的工作清單是空的。</strong> 請在下方輸入工作以開始。 不確定如何開始？ 在 <DocsLink>說明文件</DocsLink> 中閱讀更多關於 Roo 能為您做什麼的資訊。",
 	"rooTips": {
 		"boomerangTasks": {
-			"title": "任務拆分",
+			"title": "任務編排",
 			"description": "將任務拆分為更小、更易於管理的部分。"
 		},
 		"stickyModels": {
@@ -96,12 +105,19 @@
 	"enhancePrompt": "使用額外內容增強提示",
 	"addImages": "新增圖片到訊息中",
 	"sendMessage": "傳送訊息",
+	"stopTts": "停止文字轉語音",
 	"typeMessage": "輸入訊息...",
 	"typeTask": "在此處輸入您的工作...",
 	"addContext": "輸入 @ 新增內容，輸入 / 切換模式",
 	"dragFiles": "按住 Shift 鍵拖曳檔案",
 	"dragFilesImages": "按住 Shift 鍵拖曳檔案/圖片",
 	"enhancePromptDescription": "「增強提示」按鈕透過提供額外內容、說明或重新表述來幫助改進您的請求。嘗試在此處輸入請求，然後再次點選按鈕以了解其運作方式。",
+	"modeSelector": {
+		"title": "模式",
+		"marketplace": "模式市集",
+		"settings": "模式設定",
+		"description": "專門定制Roo行為的角色。"
+	},
 	"errorReadingFile": "讀取檔案時發生錯誤：",
 	"noValidImages": "未處理到任何有效圖片",
 	"separator": "分隔符號",
@@ -219,15 +235,17 @@
 		"tokens": "tokens"
 	},
 	"followUpSuggest": {
-		"copyToInput": "複製到輸入框（或按住 Shift 並點選）"
+		"copyToInput": "複製到輸入框（或按住 Shift 並點選）",
+		"autoSelectCountdown": "{{count}}秒後自動選擇",
+		"countdownDisplay": "{{count}}秒"
 	},
 	"announcement": {
 		"title": "🎉 Roo Code {{version}} 已發布",
-		"description": "Roo Code {{version}} 帶來基於您意見回饋的重要新功能與改進。",
+		"description": "Roo Code {{version}} 帶來強大的新功能和重大改進，提升您的開發工作流程。",
 		"whatsNew": "新功能",
-		"feature1": "<bold>Roo 市場正式上線</bold>: 市場現已上線！比以往更輕鬆地探索並安裝模式和 MCP。",
-		"feature2": "<bold>Gemini 2.5 模型</bold>: 新增對新版 Gemini 2.5 Pro、Flash 和 Flash Lite 模型的支援。",
-		"feature3": "<bold>Excel 檔案支援及更多</bold>: 新增 Excel (.xlsx) 檔案支援以及大量錯誤修復和改進！",
+		"feature1": "<bold>程式碼庫索引從實驗階段正式發布</bold>：完整的程式碼庫索引現已穩定，可用於正式環境，具備改進的搜尋和內容理解功能。",
+		"feature2": "<bold>新增待辦事項清單功能</bold>：透過整合的待辦事項管理保持工作進度，幫助您保持條理並專注於開發目標。",
+		"feature3": "<bold>改進的 Architect 到 Code 轉換</bold>：從 Architect 模式的規劃到 Code 模式的實作，轉換更加順暢。",
 		"hideButton": "隱藏公告",
 		"detailsDiscussLinks": "在 <discordLink>Discord</discordLink> 和 <redditLink>Reddit</redditLink> 取得更多詳細資訊並參與討論 🚀"
 	},
@@ -263,7 +281,7 @@
 		}
 	},
 	"systemPromptWarning": "警告：自訂系統提示詞覆蓋已啟用。這可能嚴重破壞功能並導致不可預測的行為。",
-	"profileViolationWarning": "目前設定檔違反了您的組織設定",
+	"profileViolationWarning": "目前設定檔與您的組織設定不相容",
 	"shellIntegration": {
 		"title": "命令執行警告",
 		"description": "您的命令正在沒有 VSCode 終端機 shell 整合的情況下執行。要隱藏此警告，您可以在 <settingsLink>Roo Code 設定</settingsLink>的 <strong>Terminal</strong> 部分停用 shell 整合，或使用下方連結排查 VSCode 終端機整合問題。",
@@ -279,7 +297,9 @@
 	"codebaseSearch": {
 		"wantsToSearch": "Roo 想要搜尋程式碼庫：<code>{{query}}</code>",
 		"wantsToSearchWithPath": "Roo 想要在 <code>{{path}}</code> 中搜尋：<code>{{query}}</code>",
-		"didSearch": "找到 {{count}} 個結果：<code>{{query}}</code>"
+		"didSearch_one": "找到 1 個結果",
+		"didSearch_other": "找到 {{count}} 個結果",
+		"resultTooltip": "相似度評分：{{score}} (點擊開啟檔案)"
 	},
 	"read-batch": {
 		"approve": {
@@ -295,5 +315,8 @@
 		"indexed": "已索引",
 		"error": "索引錯誤",
 		"status": "索引狀態"
+	},
+	"versionIndicator": {
+		"ariaLabel": "版本 {{version}} - 點擊查看發布說明"
 	}
 }

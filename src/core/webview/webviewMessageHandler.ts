@@ -1,11 +1,21 @@
+import { safeWriteJson } from "../../utils/safeWriteJson"
 import * as path from "path"
-import fs from "fs/promises"
+import * as os from "os"
+import * as fs from "fs/promises"
 import pWaitFor from "p-wait-for"
 import * as vscode from "vscode"
+import * as yaml from "yaml"
 
-import { type Language, type ProviderSettings, type GlobalState, TelemetryEventName } from "@roo-code/types"
+import {
+	type Language,
+	type ProviderSettings,
+	type GlobalState,
+	type ClineMessage,
+	TelemetryEventName,
+} from "@roo-code/types"
 import { CloudService } from "@roo-code/cloud"
 import { TelemetryService } from "@roo-code/telemetry"
+import { type ApiMessage } from "../task-persistence/apiMessages"
 
 import { ClineProvider } from "./ClineProvider"
 import { changeLanguage, t } from "../../i18n"
@@ -27,14 +37,13 @@ import { fileExistsAtPath } from "../../utils/fs"
 import { playTts, setTtsEnabled, setTtsSpeed, stopTts } from "../../utils/tts"
 import { singleCompletionHandler } from "../../utils/single-completion-handler"
 import { searchCommits } from "../../utils/git"
-import { exportSettings, importSettings } from "../config/importExport"
+import { exportSettings, importSettingsWithFeedback } from "../config/importExport"
 import { getOpenAiModels } from "../../api/providers/openai"
-import { getOllamaModels } from "../../api/providers/ollama"
 import { getVsCodeLmModels } from "../../api/providers/vscode-lm"
-import { getLmStudioModels } from "../../api/providers/lm-studio"
 import { openMention } from "../mentions"
 import { TelemetrySetting } from "../../shared/TelemetrySetting"
 import { getWorkspacePath } from "../../utils/path"
+import { ensureSettingsDirectoryExists } from "../../utils/globalContext"
 import { Mode, defaultModeSlug } from "../../shared/modes"
 import { getModels, flushModels } from "../../api/providers/fetchers/modelCache"
 import { GetModelsOptions } from "../../shared/api"
@@ -44,6 +53,7 @@ import { getCommand } from "../../utils/commands"
 const ALLOWED_VSCODE_SETTINGS = new Set(["terminal.integrated.inheritEnv"])
 
 import { MarketplaceManager, MarketplaceItemType } from "../../services/marketplace"
+import { setPendingTodoList } from "../tools/updateTodoListTool"
 
 export const webviewMessageHandler = async (
 	provider: ClineProvider,
@@ -54,6 +64,191 @@ export const webviewMessageHandler = async (
 	const getGlobalState = <K extends keyof GlobalState>(key: K) => provider.contextProxy.getValue(key)
 	const updateGlobalState = async <K extends keyof GlobalState>(key: K, value: GlobalState[K]) =>
 		await provider.contextProxy.setValue(key, value)
+
+	/**
+	 * Shared utility to find message indices based on timestamp
+	 */
+	const findMessageIndices = (messageTs: number, currentCline: any) => {
+		const timeCutoff = messageTs - 1000 // 1 second buffer before the message
+		const messageIndex = currentCline.clineMessages.findIndex((msg: ClineMessage) => msg.ts && msg.ts >= timeCutoff)
+		const apiConversationHistoryIndex = currentCline.apiConversationHistory.findIndex(
+			(msg: ApiMessage) => msg.ts && msg.ts >= timeCutoff,
+		)
+		return { messageIndex, apiConversationHistoryIndex }
+	}
+
+	/**
+	 * Removes just the target message, preserving messages after the next user message
+	 */
+	const removeMessagesJustThis = async (
+		currentCline: any,
+		messageIndex: number,
+		apiConversationHistoryIndex: number,
+	) => {
+		// Find the next user message first
+		const nextUserMessage = currentCline.clineMessages
+			.slice(messageIndex + 1)
+			.find((msg: ClineMessage) => msg.type === "say" && msg.say === "user_feedback")
+
+		// Handle UI messages
+		if (nextUserMessage) {
+			// Find absolute index of next user message
+			const nextUserMessageIndex = currentCline.clineMessages.findIndex(
+				(msg: ClineMessage) => msg === nextUserMessage,
+			)
+
+			// Keep messages before current message and after next user message
+			await currentCline.overwriteClineMessages([
+				...currentCline.clineMessages.slice(0, messageIndex),
+				...currentCline.clineMessages.slice(nextUserMessageIndex),
+			])
+		} else {
+			// If no next user message, keep only messages before current message
+			await currentCline.overwriteClineMessages(currentCline.clineMessages.slice(0, messageIndex))
+		}
+
+		// Handle API messages
+		if (apiConversationHistoryIndex !== -1) {
+			if (nextUserMessage && nextUserMessage.ts) {
+				// Keep messages before current API message and after next user message
+				await currentCline.overwriteApiConversationHistory([
+					...currentCline.apiConversationHistory.slice(0, apiConversationHistoryIndex),
+					...currentCline.apiConversationHistory.filter(
+						(msg: ApiMessage) => msg.ts && msg.ts >= nextUserMessage.ts,
+					),
+				])
+			} else {
+				// If no next user message, keep only messages before current API message
+				await currentCline.overwriteApiConversationHistory(
+					currentCline.apiConversationHistory.slice(0, apiConversationHistoryIndex),
+				)
+			}
+		}
+	}
+
+	/**
+	 * Removes the target message and all subsequent messages
+	 */
+	const removeMessagesThisAndSubsequent = async (
+		currentCline: any,
+		messageIndex: number,
+		apiConversationHistoryIndex: number,
+	) => {
+		// Delete this message and all that follow
+		await currentCline.overwriteClineMessages(currentCline.clineMessages.slice(0, messageIndex))
+
+		if (apiConversationHistoryIndex !== -1) {
+			await currentCline.overwriteApiConversationHistory(
+				currentCline.apiConversationHistory.slice(0, apiConversationHistoryIndex),
+			)
+		}
+	}
+
+	/**
+	 * Handles message deletion operations with user confirmation
+	 */
+	const handleDeleteOperation = async (messageTs: number): Promise<void> => {
+		const options = [
+			t("common:confirmation.delete_just_this_message"),
+			t("common:confirmation.delete_this_and_subsequent"),
+		]
+
+		const answer = await vscode.window.showInformationMessage(
+			t("common:confirmation.delete_message"),
+			{ modal: true },
+			...options,
+		)
+
+		// Only proceed if user selected one of the options and we have a current cline
+		if (answer && options.includes(answer) && provider.getCurrentCline()) {
+			const currentCline = provider.getCurrentCline()!
+			const { messageIndex, apiConversationHistoryIndex } = findMessageIndices(messageTs, currentCline)
+
+			if (messageIndex !== -1) {
+				try {
+					const { historyItem } = await provider.getTaskWithId(currentCline.taskId)
+
+					// Check which option the user selected
+					if (answer === options[0]) {
+						// Delete just this message
+						await removeMessagesJustThis(currentCline, messageIndex, apiConversationHistoryIndex)
+					} else if (answer === options[1]) {
+						// Delete this message and all subsequent
+						await removeMessagesThisAndSubsequent(currentCline, messageIndex, apiConversationHistoryIndex)
+					}
+
+					// Initialize with history item after deletion
+					await provider.initClineWithHistoryItem(historyItem)
+				} catch (error) {
+					console.error("Error in delete message:", error)
+					vscode.window.showErrorMessage(
+						`Error deleting message: ${error instanceof Error ? error.message : String(error)}`,
+					)
+				}
+			}
+		}
+	}
+
+	/**
+	 * Handles message editing operations with user confirmation
+	 */
+	const handleEditOperation = async (messageTs: number, editedContent: string): Promise<void> => {
+		const answer = await vscode.window.showWarningMessage(
+			t("common:confirmation.edit_warning"),
+			{ modal: true },
+			t("common:confirmation.proceed"),
+		)
+
+		// Only proceed if user selected "Proceed" and we have a current cline
+		if (answer === t("common:confirmation.proceed") && provider.getCurrentCline()) {
+			const currentCline = provider.getCurrentCline()!
+
+			// Use findMessageIndices to find messages based on timestamp
+			const { messageIndex, apiConversationHistoryIndex } = findMessageIndices(messageTs, currentCline)
+
+			if (messageIndex !== -1) {
+				try {
+					// Edit this message and delete subsequent
+					await removeMessagesThisAndSubsequent(currentCline, messageIndex, apiConversationHistoryIndex)
+
+					// Process the edited message as a regular user message
+					// This will add it to the conversation and trigger an AI response
+					webviewMessageHandler(provider, {
+						type: "askResponse",
+						askResponse: "messageResponse",
+						text: editedContent,
+					})
+
+					// Don't initialize with history item for edit operations
+					// The webviewMessageHandler will handle the conversation state
+				} catch (error) {
+					console.error("Error in edit message:", error)
+					vscode.window.showErrorMessage(
+						`Error editing message: ${error instanceof Error ? error.message : String(error)}`,
+					)
+				}
+			}
+		}
+	}
+
+	/**
+	 * Handles message modification operations (delete or edit) with confirmation dialog
+	 * @param messageTs Timestamp of the message to operate on
+	 * @param operation Type of operation ('delete' or 'edit')
+	 * @param editedContent New content for edit operations
+	 * @returns Promise<void>
+	 */
+	const handleMessageModificationsOperation = async (
+		messageTs: number,
+		operation: "delete" | "edit",
+		editedContent?: string,
+	): Promise<void> => {
+		if (operation === "delete") {
+			await handleDeleteOperation(messageTs)
+		} else if (operation === "edit" && editedContent) {
+			await handleEditOperation(messageTs, editedContent)
+		}
+	}
 
 	switch (message.type) {
 		case "webviewDidLaunch":
@@ -183,6 +378,10 @@ export const webviewMessageHandler = async (
 			await updateGlobalState("alwaysAllowSubtasks", message.bool)
 			await provider.postStateToWebview()
 			break
+		case "alwaysAllowUpdateTodoList":
+			await updateGlobalState("alwaysAllowUpdateTodoList", message.bool)
+			await provider.postStateToWebview()
+			break
 		case "askResponse":
 			provider.getCurrentCline()?.handleWebviewAskResponse(message.askResponse!, message.text, message.images)
 			break
@@ -201,7 +400,14 @@ export const webviewMessageHandler = async (
 			break
 		case "clearTask":
 			// clear task resets the current session and allows for a new task to be started, if this session is a subtask - it allows the parent task to be resumed
-			await provider.finishSubTask(t("common:tasks.canceled"))
+			// Check if the current task actually has a parent task
+			const currentTask = provider.getCurrentCline()
+			if (currentTask && currentTask.parentTask) {
+				await provider.finishSubTask(t("common:tasks.canceled"))
+			} else {
+				// Regular task - just clear it
+				await provider.clearTask()
+			}
 			await provider.postStateToWebview()
 			break
 		case "didShowAnnouncement":
@@ -220,22 +426,45 @@ export const webviewMessageHandler = async (
 			break
 		case "shareCurrentTask":
 			const shareTaskId = provider.getCurrentCline()?.taskId
+			const clineMessages = provider.getCurrentCline()?.clineMessages
 			if (!shareTaskId) {
 				vscode.window.showErrorMessage(t("common:errors.share_no_active_task"))
 				break
 			}
 
 			try {
-				const success = await CloudService.instance.shareTask(shareTaskId)
-				if (success) {
-					// Show success message
-					vscode.window.showInformationMessage(t("common:info.share_link_copied"))
+				const visibility = message.visibility || "organization"
+				const result = await CloudService.instance.shareTask(shareTaskId, visibility, clineMessages)
+
+				if (result.success && result.shareUrl) {
+					// Show success notification
+					const messageKey =
+						visibility === "public"
+							? "common:info.public_share_link_copied"
+							: "common:info.organization_share_link_copied"
+					vscode.window.showInformationMessage(t(messageKey))
+
+					// Send success feedback to webview for inline display
+					await provider.postMessageToWebview({
+						type: "shareTaskSuccess",
+						visibility,
+						text: result.shareUrl,
+					})
 				} else {
-					// Show generic failure message
-					vscode.window.showErrorMessage(t("common:errors.share_task_failed"))
+					// Handle error
+					const errorMessage = result.error || "Failed to create share link"
+					if (errorMessage.includes("Authentication")) {
+						vscode.window.showErrorMessage(t("common:errors.share_auth_required"))
+					} else if (errorMessage.includes("sharing is not enabled")) {
+						vscode.window.showErrorMessage(t("common:errors.share_not_enabled"))
+					} else if (errorMessage.includes("not found")) {
+						vscode.window.showErrorMessage(t("common:errors.share_task_not_found"))
+					} else {
+						vscode.window.showErrorMessage(errorMessage)
+					}
 				}
 			} catch (error) {
-				// Show generic failure message
+				provider.log(`[shareCurrentTask] Unexpected error: ${error}`)
 				vscode.window.showErrorMessage(t("common:errors.share_task_failed"))
 			}
 			break
@@ -296,19 +525,12 @@ export const webviewMessageHandler = async (
 			provider.exportTaskWithId(message.text!)
 			break
 		case "importSettings": {
-			const result = await importSettings({
+			await importSettingsWithFeedback({
 				providerSettingsManager: provider.providerSettingsManager,
 				contextProxy: provider.contextProxy,
 				customModesManager: provider.customModesManager,
+				provider: provider,
 			})
-
-			if (result.success) {
-				provider.settingsImportedAt = Date.now()
-				await provider.postStateToWebview()
-				await vscode.window.showInformationMessage(t("common:info.settings_imported"))
-			} else if (result.error) {
-				await vscode.window.showErrorMessage(t("common:errors.settings_import_failed", { error: result.error }))
-			}
 
 			break
 		}
@@ -335,6 +557,8 @@ export const webviewMessageHandler = async (
 				glama: {},
 				unbound: {},
 				litellm: {},
+				ollama: {},
+				lmstudio: {},
 			}
 
 			const safeGetModels = async (options: GetModelsOptions): Promise<ModelRecord> => {
@@ -356,6 +580,9 @@ export const webviewMessageHandler = async (
 				{ key: "unbound", options: { provider: "unbound", apiKey: apiConfiguration.unboundApiKey } },
 			]
 
+			// Don't fetch Ollama and LM Studio models by default anymore
+			// They have their own specific handlers: requestOllamaModels and requestLmStudioModels
+
 			const litellmApiKey = apiConfiguration.litellmApiKey || message?.values?.litellmApiKey
 			const litellmBaseUrl = apiConfiguration.litellmBaseUrl || message?.values?.litellmBaseUrl
 			if (litellmApiKey && litellmBaseUrl) {
@@ -372,13 +599,31 @@ export const webviewMessageHandler = async (
 				}),
 			)
 
-			const fetchedRouterModels: Partial<Record<RouterName, ModelRecord>> = { ...routerModels }
+			const fetchedRouterModels: Partial<Record<RouterName, ModelRecord>> = {
+				...routerModels,
+				// Initialize ollama and lmstudio with empty objects since they use separate handlers
+				ollama: {},
+				lmstudio: {},
+			}
 
 			results.forEach((result, index) => {
 				const routerName = modelFetchPromises[index].key // Get RouterName using index
 
 				if (result.status === "fulfilled") {
 					fetchedRouterModels[routerName] = result.value.models
+
+					// Ollama and LM Studio settings pages still need these events
+					if (routerName === "ollama" && Object.keys(result.value.models).length > 0) {
+						provider.postMessageToWebview({
+							type: "ollamaModels",
+							ollamaModels: Object.keys(result.value.models),
+						})
+					} else if (routerName === "lmstudio" && Object.keys(result.value.models).length > 0) {
+						provider.postMessageToWebview({
+							type: "lmStudioModels",
+							lmStudioModels: Object.keys(result.value.models),
+						})
+					}
 				} else {
 					// Handle rejection: Post a specific error message for this provider
 					const errorMessage = result.reason instanceof Error ? result.reason.message : String(result.reason)
@@ -399,7 +644,56 @@ export const webviewMessageHandler = async (
 				type: "routerModels",
 				routerModels: fetchedRouterModels as Record<RouterName, ModelRecord>,
 			})
+
 			break
+		case "requestOllamaModels": {
+			// Specific handler for Ollama models only
+			const { apiConfiguration: ollamaApiConfig } = await provider.getState()
+			try {
+				// Flush cache first to ensure fresh models
+				await flushModels("ollama")
+
+				const ollamaModels = await getModels({
+					provider: "ollama",
+					baseUrl: ollamaApiConfig.ollamaBaseUrl,
+				})
+
+				if (Object.keys(ollamaModels).length > 0) {
+					provider.postMessageToWebview({
+						type: "ollamaModels",
+						ollamaModels: Object.keys(ollamaModels),
+					})
+				}
+			} catch (error) {
+				// Silently fail - user hasn't configured Ollama yet
+				console.debug("Ollama models fetch failed:", error)
+			}
+			break
+		}
+		case "requestLmStudioModels": {
+			// Specific handler for LM Studio models only
+			const { apiConfiguration: lmStudioApiConfig } = await provider.getState()
+			try {
+				// Flush cache first to ensure fresh models
+				await flushModels("lmstudio")
+
+				const lmStudioModels = await getModels({
+					provider: "lmstudio",
+					baseUrl: lmStudioApiConfig.lmStudioBaseUrl,
+				})
+
+				if (Object.keys(lmStudioModels).length > 0) {
+					provider.postMessageToWebview({
+						type: "lmStudioModels",
+						lmStudioModels: Object.keys(lmStudioModels),
+					})
+				}
+			} catch (error) {
+				// Silently fail - user hasn't configured LM Studio yet
+				console.debug("LM Studio models fetch failed:", error)
+			}
+			break
+		}
 		case "requestOpenAiModels":
 			if (message?.values?.baseUrl && message?.values?.apiKey) {
 				const openAiModels = await getOpenAiModels(
@@ -411,16 +705,6 @@ export const webviewMessageHandler = async (
 				provider.postMessageToWebview({ type: "openAiModels", openAiModels })
 			}
 
-			break
-		case "requestOllamaModels":
-			const ollamaModels = await getOllamaModels(message.text)
-			// TODO: Cache like we do for OpenRouter, etc?
-			provider.postMessageToWebview({ type: "ollamaModels", ollamaModels })
-			break
-		case "requestLmStudioModels":
-			const lmStudioModels = await getLmStudioModels(message.text)
-			// TODO: Cache like we do for OpenRouter, etc?
-			provider.postMessageToWebview({ type: "lmStudioModels", lmStudioModels })
 			break
 		case "requestVsCodeLmModels":
 			const vsCodeLmModels = await getVsCodeLmModels()
@@ -476,15 +760,22 @@ export const webviewMessageHandler = async (
 		case "cancelTask":
 			await provider.cancelTask()
 			break
-		case "allowedCommands":
-			await provider.context.globalState.update("allowedCommands", message.commands)
+		case "allowedCommands": {
+			// Validate and sanitize the commands array
+			const commands = message.commands ?? []
+			const validCommands = Array.isArray(commands)
+				? commands.filter((cmd) => typeof cmd === "string" && cmd.trim().length > 0)
+				: []
+
+			await updateGlobalState("allowedCommands", validCommands)
 
 			// Also update workspace settings.
 			await vscode.workspace
 				.getConfiguration(Package.name)
-				.update("allowedCommands", message.commands, vscode.ConfigurationTarget.Global)
+				.update("allowedCommands", validCommands, vscode.ConfigurationTarget.Global)
 
 			break
+		}
 		case "openCustomModesSettings": {
 			const customModesFilePath = await provider.customModesManager.getCustomModesFilePath()
 
@@ -518,7 +809,7 @@ export const webviewMessageHandler = async (
 				const exists = await fileExistsAtPath(mcpPath)
 
 				if (!exists) {
-					await fs.writeFile(mcpPath, JSON.stringify({ mcpServers: {} }, null, 2))
+					await safeWriteJson(mcpPath, { mcpServers: {} })
 				}
 
 				await openFile(mcpPath)
@@ -570,6 +861,23 @@ export const webviewMessageHandler = async (
 			} catch (error) {
 				provider.log(
 					`Failed to toggle auto-approve for tool ${message.toolName}: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
+				)
+			}
+			break
+		}
+		case "toggleToolEnabledForPrompt": {
+			try {
+				await provider
+					.getMcpHub()
+					?.toggleToolEnabledForPrompt(
+						message.serverName!,
+						message.source as "global" | "project",
+						message.toolName!,
+						Boolean(message.isEnabled),
+					)
+			} catch (error) {
+				provider.log(
+					`Failed to toggle enabled for prompt for tool ${message.toolName}: ${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}`,
 				)
 			}
 			break
@@ -849,113 +1157,43 @@ export const webviewMessageHandler = async (
 				const updatedPrompts = { ...existingPrompts, [message.promptMode]: message.customPrompt }
 				await updateGlobalState("customModePrompts", updatedPrompts)
 				const currentState = await provider.getStateToPostToWebview()
-				const stateWithPrompts = { ...currentState, customModePrompts: updatedPrompts }
+				const stateWithPrompts = {
+					...currentState,
+					customModePrompts: updatedPrompts,
+					hasOpenedModeSelector: currentState.hasOpenedModeSelector ?? false,
+				}
 				provider.postMessageToWebview({ type: "state", state: stateWithPrompts })
+
+				if (TelemetryService.hasInstance()) {
+					// Determine which setting was changed by comparing objects
+					const oldPrompt = existingPrompts[message.promptMode] || {}
+					const newPrompt = message.customPrompt
+					const changedSettings = Object.keys(newPrompt).filter(
+						(key) =>
+							JSON.stringify((oldPrompt as Record<string, unknown>)[key]) !==
+							JSON.stringify((newPrompt as Record<string, unknown>)[key]),
+					)
+
+					if (changedSettings.length > 0) {
+						TelemetryService.instance.captureModeSettingChanged(changedSettings[0])
+					}
+				}
 			}
 			break
 		case "deleteMessage": {
-			const answer = await vscode.window.showInformationMessage(
-				t("common:confirmation.delete_message"),
-				{ modal: true },
-				t("common:confirmation.just_this_message"),
-				t("common:confirmation.this_and_subsequent"),
-			)
-
+			if (provider.getCurrentCline() && typeof message.value === "number" && message.value) {
+				await handleMessageModificationsOperation(message.value, "delete")
+			}
+			break
+		}
+		case "submitEditedMessage": {
 			if (
-				(answer === t("common:confirmation.just_this_message") ||
-					answer === t("common:confirmation.this_and_subsequent")) &&
 				provider.getCurrentCline() &&
 				typeof message.value === "number" &&
-				message.value
+				message.value &&
+				message.editedMessageContent
 			) {
-				const timeCutoff = message.value - 1000 // 1 second buffer before the message to delete
-
-				const messageIndex = provider
-					.getCurrentCline()!
-					.clineMessages.findIndex((msg) => msg.ts && msg.ts >= timeCutoff)
-
-				const apiConversationHistoryIndex = provider
-					.getCurrentCline()
-					?.apiConversationHistory.findIndex((msg) => msg.ts && msg.ts >= timeCutoff)
-
-				if (messageIndex !== -1) {
-					const { historyItem } = await provider.getTaskWithId(provider.getCurrentCline()!.taskId)
-
-					if (answer === t("common:confirmation.just_this_message")) {
-						// Find the next user message first
-						const nextUserMessage = provider
-							.getCurrentCline()!
-							.clineMessages.slice(messageIndex + 1)
-							.find((msg) => msg.type === "say" && msg.say === "user_feedback")
-
-						// Handle UI messages
-						if (nextUserMessage) {
-							// Find absolute index of next user message
-							const nextUserMessageIndex = provider
-								.getCurrentCline()!
-								.clineMessages.findIndex((msg) => msg === nextUserMessage)
-
-							// Keep messages before current message and after next user message
-							await provider
-								.getCurrentCline()!
-								.overwriteClineMessages([
-									...provider.getCurrentCline()!.clineMessages.slice(0, messageIndex),
-									...provider.getCurrentCline()!.clineMessages.slice(nextUserMessageIndex),
-								])
-						} else {
-							// If no next user message, keep only messages before current message
-							await provider
-								.getCurrentCline()!
-								.overwriteClineMessages(
-									provider.getCurrentCline()!.clineMessages.slice(0, messageIndex),
-								)
-						}
-
-						// Handle API messages
-						if (apiConversationHistoryIndex !== -1) {
-							if (nextUserMessage && nextUserMessage.ts) {
-								// Keep messages before current API message and after next user message
-								await provider
-									.getCurrentCline()!
-									.overwriteApiConversationHistory([
-										...provider
-											.getCurrentCline()!
-											.apiConversationHistory.slice(0, apiConversationHistoryIndex),
-										...provider
-											.getCurrentCline()!
-											.apiConversationHistory.filter(
-												(msg) => msg.ts && msg.ts >= nextUserMessage.ts,
-											),
-									])
-							} else {
-								// If no next user message, keep only messages before current API message
-								await provider
-									.getCurrentCline()!
-									.overwriteApiConversationHistory(
-										provider
-											.getCurrentCline()!
-											.apiConversationHistory.slice(0, apiConversationHistoryIndex),
-									)
-							}
-						}
-					} else if (answer === t("common:confirmation.this_and_subsequent")) {
-						// Delete this message and all that follow
-						await provider
-							.getCurrentCline()!
-							.overwriteClineMessages(provider.getCurrentCline()!.clineMessages.slice(0, messageIndex))
-						if (apiConversationHistoryIndex !== -1) {
-							await provider
-								.getCurrentCline()!
-								.overwriteApiConversationHistory(
-									provider
-										.getCurrentCline()!
-										.apiConversationHistory.slice(0, apiConversationHistoryIndex),
-								)
-						}
-					}
-
-					await provider.initClineWithHistoryItem(historyItem)
-				}
+				await handleMessageModificationsOperation(message.value, "edit", message.editedMessageContent)
 			}
 			break
 		}
@@ -973,6 +1211,14 @@ export const webviewMessageHandler = async (
 			await updateGlobalState("maxWorkspaceFiles", fileCount)
 			await provider.postStateToWebview()
 			break
+		case "alwaysAllowFollowupQuestions":
+			await updateGlobalState("alwaysAllowFollowupQuestions", message.bool ?? false)
+			await provider.postStateToWebview()
+			break
+		case "followupAutoApproveTimeoutMs":
+			await updateGlobalState("followupAutoApproveTimeoutMs", message.value)
+			await provider.postStateToWebview()
+			break
 		case "browserToolEnabled":
 			await updateGlobalState("browserToolEnabled", message.bool ?? true)
 			await provider.postStateToWebview()
@@ -984,6 +1230,10 @@ export const webviewMessageHandler = async (
 			break
 		case "showRooIgnoredFiles":
 			await updateGlobalState("showRooIgnoredFiles", message.bool ?? true)
+			await provider.postStateToWebview()
+			break
+		case "hasOpenedModeSelector":
+			await updateGlobalState("hasOpenedModeSelector", message.bool ?? true)
 			await provider.postStateToWebview()
 			break
 		case "maxReadFileLine":
@@ -1024,6 +1274,10 @@ export const webviewMessageHandler = async (
 			break
 		case "updateCondensingPrompt":
 			await updateGlobalState("customCondensingPrompt", message.text)
+			await provider.postStateToWebview()
+			break
+		case "profileThresholds":
+			await updateGlobalState("profileThresholds", message.values)
 			await provider.postStateToWebview()
 			break
 		case "autoApprovalEnabled":
@@ -1153,6 +1407,14 @@ export const webviewMessageHandler = async (
 					error: errorMessage,
 					requestId: message.requestId,
 				})
+			}
+			break
+		}
+		case "updateTodoList": {
+			const payload = message.payload as { todos?: any[] }
+			const todos = payload?.todos
+			if (Array.isArray(todos)) {
+				await setPendingTodoList(todos)
 			}
 			break
 		}
@@ -1311,30 +1573,298 @@ export const webviewMessageHandler = async (
 			break
 		case "updateCustomMode":
 			if (message.modeConfig) {
+				// Check if this is a new mode or an update to an existing mode
+				const existingModes = await provider.customModesManager.getCustomModes()
+				const isNewMode = !existingModes.some((mode) => mode.slug === message.modeConfig?.slug)
+
 				await provider.customModesManager.updateCustomMode(message.modeConfig.slug, message.modeConfig)
 				// Update state after saving the mode
 				const customModes = await provider.customModesManager.getCustomModes()
 				await updateGlobalState("customModes", customModes)
 				await updateGlobalState("mode", message.modeConfig.slug)
 				await provider.postStateToWebview()
+
+				// Track telemetry for custom mode creation or update
+				if (TelemetryService.hasInstance()) {
+					if (isNewMode) {
+						// This is a new custom mode
+						TelemetryService.instance.captureCustomModeCreated(
+							message.modeConfig.slug,
+							message.modeConfig.name,
+						)
+					} else {
+						// Determine which setting was changed by comparing objects
+						const existingMode = existingModes.find((mode) => mode.slug === message.modeConfig?.slug)
+						const changedSettings = existingMode
+							? Object.keys(message.modeConfig).filter(
+									(key) =>
+										JSON.stringify((existingMode as Record<string, unknown>)[key]) !==
+										JSON.stringify((message.modeConfig as Record<string, unknown>)[key]),
+								)
+							: []
+
+						if (changedSettings.length > 0) {
+							TelemetryService.instance.captureModeSettingChanged(changedSettings[0])
+						}
+					}
+				}
 			}
 			break
 		case "deleteCustomMode":
 			if (message.slug) {
-				const answer = await vscode.window.showInformationMessage(
-					t("common:confirmation.delete_custom_mode"),
-					{ modal: true },
-					t("common:answers.yes"),
-				)
+				// Get the mode details to determine source and rules folder path
+				const customModes = await provider.customModesManager.getCustomModes()
+				const modeToDelete = customModes.find((mode) => mode.slug === message.slug)
 
-				if (answer !== t("common:answers.yes")) {
+				if (!modeToDelete) {
 					break
 				}
 
+				// Determine the scope based on source (project or global)
+				const scope = modeToDelete.source || "global"
+
+				// Determine the rules folder path
+				let rulesFolderPath: string
+				if (scope === "project") {
+					const workspacePath = getWorkspacePath()
+					if (workspacePath) {
+						rulesFolderPath = path.join(workspacePath, ".roo", `rules-${message.slug}`)
+					} else {
+						rulesFolderPath = path.join(".roo", `rules-${message.slug}`)
+					}
+				} else {
+					// Global scope - use OS home directory
+					const homeDir = os.homedir()
+					rulesFolderPath = path.join(homeDir, ".roo", `rules-${message.slug}`)
+				}
+
+				// Check if the rules folder exists
+				const rulesFolderExists = await fileExistsAtPath(rulesFolderPath)
+
+				// If this is a check request, send back the folder info
+				if (message.checkOnly) {
+					await provider.postMessageToWebview({
+						type: "deleteCustomModeCheck",
+						slug: message.slug,
+						rulesFolderPath: rulesFolderExists ? rulesFolderPath : undefined,
+					})
+					break
+				}
+
+				// Delete the mode
 				await provider.customModesManager.deleteCustomMode(message.slug)
+
+				// Delete the rules folder if it exists
+				if (rulesFolderExists) {
+					try {
+						await fs.rm(rulesFolderPath, { recursive: true, force: true })
+						provider.log(`Deleted rules folder for mode ${message.slug}: ${rulesFolderPath}`)
+					} catch (error) {
+						provider.log(`Failed to delete rules folder for mode ${message.slug}: ${error}`)
+						// Notify the user about the failure
+						vscode.window.showErrorMessage(
+							t("common:errors.delete_rules_folder_failed", {
+								rulesFolderPath,
+								error: error instanceof Error ? error.message : String(error),
+							}),
+						)
+						// Continue with mode deletion even if folder deletion fails
+					}
+				}
+
 				// Switch back to default mode after deletion
 				await updateGlobalState("mode", defaultModeSlug)
 				await provider.postStateToWebview()
+			}
+			break
+		case "exportMode":
+			if (message.slug) {
+				try {
+					// Get custom mode prompts to check if built-in mode has been customized
+					const customModePrompts = getGlobalState("customModePrompts") || {}
+					const customPrompt = customModePrompts[message.slug]
+
+					// Export the mode with any customizations merged directly
+					const result = await provider.customModesManager.exportModeWithRules(message.slug, customPrompt)
+
+					if (result.success && result.yaml) {
+						// Get last used directory for export
+						const lastExportPath = getGlobalState("lastModeExportPath")
+						let defaultUri: vscode.Uri
+
+						if (lastExportPath) {
+							// Use the directory from the last export
+							const lastDir = path.dirname(lastExportPath)
+							defaultUri = vscode.Uri.file(path.join(lastDir, `${message.slug}-export.yaml`))
+						} else {
+							// Default to workspace or home directory
+							const workspaceFolders = vscode.workspace.workspaceFolders
+							if (workspaceFolders && workspaceFolders.length > 0) {
+								defaultUri = vscode.Uri.file(
+									path.join(workspaceFolders[0].uri.fsPath, `${message.slug}-export.yaml`),
+								)
+							} else {
+								defaultUri = vscode.Uri.file(`${message.slug}-export.yaml`)
+							}
+						}
+
+						// Show save dialog
+						const saveUri = await vscode.window.showSaveDialog({
+							defaultUri,
+							filters: {
+								"YAML files": ["yaml", "yml"],
+							},
+							title: "Save mode export",
+						})
+
+						if (saveUri && result.yaml) {
+							// Save the directory for next time
+							await updateGlobalState("lastModeExportPath", saveUri.fsPath)
+
+							// Write the file to the selected location
+							await fs.writeFile(saveUri.fsPath, result.yaml, "utf-8")
+
+							// Send success message to webview
+							provider.postMessageToWebview({
+								type: "exportModeResult",
+								success: true,
+								slug: message.slug,
+							})
+
+							// Show info message
+							vscode.window.showInformationMessage(t("common:info.mode_exported", { mode: message.slug }))
+						} else {
+							// User cancelled the save dialog
+							provider.postMessageToWebview({
+								type: "exportModeResult",
+								success: false,
+								error: "Export cancelled",
+								slug: message.slug,
+							})
+						}
+					} else {
+						// Send error message to webview
+						provider.postMessageToWebview({
+							type: "exportModeResult",
+							success: false,
+							error: result.error,
+							slug: message.slug,
+						})
+					}
+				} catch (error) {
+					const errorMessage = error instanceof Error ? error.message : String(error)
+					provider.log(`Failed to export mode ${message.slug}: ${errorMessage}`)
+
+					// Send error message to webview
+					provider.postMessageToWebview({
+						type: "exportModeResult",
+						success: false,
+						error: errorMessage,
+						slug: message.slug,
+					})
+				}
+			}
+			break
+		case "importMode":
+			try {
+				// Get last used directory for import
+				const lastImportPath = getGlobalState("lastModeImportPath")
+				let defaultUri: vscode.Uri | undefined
+
+				if (lastImportPath) {
+					// Use the directory from the last import
+					const lastDir = path.dirname(lastImportPath)
+					defaultUri = vscode.Uri.file(lastDir)
+				} else {
+					// Default to workspace or home directory
+					const workspaceFolders = vscode.workspace.workspaceFolders
+					if (workspaceFolders && workspaceFolders.length > 0) {
+						defaultUri = vscode.Uri.file(workspaceFolders[0].uri.fsPath)
+					}
+				}
+
+				// Show file picker to select YAML file
+				const fileUri = await vscode.window.showOpenDialog({
+					canSelectFiles: true,
+					canSelectFolders: false,
+					canSelectMany: false,
+					defaultUri,
+					filters: {
+						"YAML files": ["yaml", "yml"],
+					},
+					title: "Select mode export file to import",
+				})
+
+				if (fileUri && fileUri[0]) {
+					// Save the directory for next time
+					await updateGlobalState("lastModeImportPath", fileUri[0].fsPath)
+
+					// Read the file content
+					const yamlContent = await fs.readFile(fileUri[0].fsPath, "utf-8")
+
+					// Import the mode with the specified source level
+					const result = await provider.customModesManager.importModeWithRules(
+						yamlContent,
+						message.source || "project", // Default to project if not specified
+					)
+
+					if (result.success) {
+						// Update state after importing
+						const customModes = await provider.customModesManager.getCustomModes()
+						await updateGlobalState("customModes", customModes)
+						await provider.postStateToWebview()
+
+						// Send success message to webview
+						provider.postMessageToWebview({
+							type: "importModeResult",
+							success: true,
+						})
+
+						// Show success message
+						vscode.window.showInformationMessage(t("common:info.mode_imported"))
+					} else {
+						// Send error message to webview
+						provider.postMessageToWebview({
+							type: "importModeResult",
+							success: false,
+							error: result.error,
+						})
+
+						// Show error message
+						vscode.window.showErrorMessage(t("common:errors.mode_import_failed", { error: result.error }))
+					}
+				} else {
+					// User cancelled the file dialog - reset the importing state
+					provider.postMessageToWebview({
+						type: "importModeResult",
+						success: false,
+						error: "cancelled",
+					})
+				}
+			} catch (error) {
+				const errorMessage = error instanceof Error ? error.message : String(error)
+				provider.log(`Failed to import mode: ${errorMessage}`)
+
+				// Send error message to webview
+				provider.postMessageToWebview({
+					type: "importModeResult",
+					success: false,
+					error: errorMessage,
+				})
+
+				// Show error message
+				vscode.window.showErrorMessage(t("common:errors.mode_import_failed", { error: errorMessage }))
+			}
+			break
+		case "checkRulesDirectory":
+			if (message.slug) {
+				const hasContent = await provider.customModesManager.checkRulesDirectoryHasContent(message.slug)
+
+				provider.postMessageToWebview({
+					type: "checkRulesDirectoryResult",
+					slug: message.slug,
+					hasContent: hasContent,
+				})
 			}
 			break
 		case "humanRelayResponse":
@@ -1392,43 +1922,156 @@ export const webviewMessageHandler = async (
 
 			break
 		}
-		case "codebaseIndexConfig": {
-			const codebaseIndexConfig = message.values ?? {
-				codebaseIndexEnabled: false,
-				codebaseIndexQdrantUrl: "http://localhost:6333",
-				codebaseIndexEmbedderProvider: "openai",
-				codebaseIndexEmbedderBaseUrl: "",
-				codebaseIndexEmbedderModelId: "",
+
+		case "saveCodeIndexSettingsAtomic": {
+			if (!message.codeIndexSettings) {
+				break
 			}
-			await updateGlobalState("codebaseIndexConfig", codebaseIndexConfig)
+
+			const settings = message.codeIndexSettings
 
 			try {
-				if (provider.codeIndexManager) {
-					await provider.codeIndexManager.handleExternalSettingsChange()
+				// Check if embedder provider has changed
+				const currentConfig = getGlobalState("codebaseIndexConfig") || {}
+				const embedderProviderChanged =
+					currentConfig.codebaseIndexEmbedderProvider !== settings.codebaseIndexEmbedderProvider
 
-					// If now configured and enabled, start indexing automatically
+				// Save global state settings atomically (without codebaseIndexEnabled which is now in global settings)
+				const globalStateConfig = {
+					...currentConfig,
+					codebaseIndexQdrantUrl: settings.codebaseIndexQdrantUrl,
+					codebaseIndexEmbedderProvider: settings.codebaseIndexEmbedderProvider,
+					codebaseIndexEmbedderBaseUrl: settings.codebaseIndexEmbedderBaseUrl,
+					codebaseIndexEmbedderModelId: settings.codebaseIndexEmbedderModelId,
+					codebaseIndexEmbedderModelDimension: settings.codebaseIndexEmbedderModelDimension, // Generic dimension
+					codebaseIndexOpenAiCompatibleBaseUrl: settings.codebaseIndexOpenAiCompatibleBaseUrl,
+					codebaseIndexSearchMaxResults: settings.codebaseIndexSearchMaxResults,
+					codebaseIndexSearchMinScore: settings.codebaseIndexSearchMinScore,
+				}
+
+				// Save global state first
+				await updateGlobalState("codebaseIndexConfig", globalStateConfig)
+
+				// Save secrets directly using context proxy
+				if (settings.codeIndexOpenAiKey !== undefined) {
+					await provider.contextProxy.storeSecret("codeIndexOpenAiKey", settings.codeIndexOpenAiKey)
+				}
+				if (settings.codeIndexQdrantApiKey !== undefined) {
+					await provider.contextProxy.storeSecret("codeIndexQdrantApiKey", settings.codeIndexQdrantApiKey)
+				}
+				if (settings.codebaseIndexOpenAiCompatibleApiKey !== undefined) {
+					await provider.contextProxy.storeSecret(
+						"codebaseIndexOpenAiCompatibleApiKey",
+						settings.codebaseIndexOpenAiCompatibleApiKey,
+					)
+				}
+				if (settings.codebaseIndexGeminiApiKey !== undefined) {
+					await provider.contextProxy.storeSecret(
+						"codebaseIndexGeminiApiKey",
+						settings.codebaseIndexGeminiApiKey,
+					)
+				}
+
+				// Send success response first - settings are saved regardless of validation
+				await provider.postMessageToWebview({
+					type: "codeIndexSettingsSaved",
+					success: true,
+					settings: globalStateConfig,
+				})
+
+				// Update webview state
+				await provider.postStateToWebview()
+
+				// Then handle validation and initialization
+				if (provider.codeIndexManager) {
+					// If embedder provider changed, perform proactive validation
+					if (embedderProviderChanged) {
+						try {
+							// Force handleSettingsChange which will trigger validation
+							await provider.codeIndexManager.handleSettingsChange()
+						} catch (error) {
+							// Validation failed - the error state is already set by handleSettingsChange
+							provider.log(
+								`Embedder validation failed after provider change: ${error instanceof Error ? error.message : String(error)}`,
+							)
+							// Send validation error to webview
+							await provider.postMessageToWebview({
+								type: "indexingStatusUpdate",
+								values: provider.codeIndexManager.getCurrentStatus(),
+							})
+							// Exit early - don't try to start indexing with invalid configuration
+							break
+						}
+					} else {
+						// No provider change, just handle settings normally
+						try {
+							await provider.codeIndexManager.handleSettingsChange()
+						} catch (error) {
+							// Log but don't fail - settings are saved
+							provider.log(
+								`Settings change handling error: ${error instanceof Error ? error.message : String(error)}`,
+							)
+						}
+					}
+
+					// Wait a bit more to ensure everything is ready
+					await new Promise((resolve) => setTimeout(resolve, 200))
+
+					// Auto-start indexing if now enabled and configured
 					if (provider.codeIndexManager.isFeatureEnabled && provider.codeIndexManager.isFeatureConfigured) {
 						if (!provider.codeIndexManager.isInitialized) {
-							await provider.codeIndexManager.initialize(provider.contextProxy)
+							try {
+								await provider.codeIndexManager.initialize(provider.contextProxy)
+								provider.log(`Code index manager initialized after settings save`)
+							} catch (error) {
+								provider.log(
+									`Code index initialization failed: ${error instanceof Error ? error.message : String(error)}`,
+								)
+								// Send error status to webview
+								await provider.postMessageToWebview({
+									type: "indexingStatusUpdate",
+									values: provider.codeIndexManager.getCurrentStatus(),
+								})
+							}
 						}
-						// Start indexing in background (no await)
-						provider.codeIndexManager.startIndexing()
 					}
 				}
 			} catch (error) {
-				provider.log(
-					`[CodeIndexManager] Error during background CodeIndexManager configuration/indexing: ${error.message || error}`,
-				)
+				provider.log(`Error saving code index settings: ${error.message || error}`)
+				await provider.postMessageToWebview({
+					type: "codeIndexSettingsSaved",
+					success: false,
+					error: error.message || "Failed to save settings",
+				})
 			}
-
-			await provider.postStateToWebview()
 			break
 		}
+
 		case "requestIndexingStatus": {
 			const status = provider.codeIndexManager!.getCurrentStatus()
 			provider.postMessageToWebview({
 				type: "indexingStatusUpdate",
 				values: status,
+			})
+			break
+		}
+		case "requestCodeIndexSecretStatus": {
+			// Check if secrets are set using the VSCode context directly for async access
+			const hasOpenAiKey = !!(await provider.context.secrets.get("codeIndexOpenAiKey"))
+			const hasQdrantApiKey = !!(await provider.context.secrets.get("codeIndexQdrantApiKey"))
+			const hasOpenAiCompatibleApiKey = !!(await provider.context.secrets.get(
+				"codebaseIndexOpenAiCompatibleApiKey",
+			))
+			const hasGeminiApiKey = !!(await provider.context.secrets.get("codebaseIndexGeminiApiKey"))
+
+			provider.postMessageToWebview({
+				type: "codeIndexSecretStatus",
+				values: {
+					hasOpenAiKey,
+					hasQdrantApiKey,
+					hasOpenAiCompatibleApiKey,
+					hasGeminiApiKey,
+				},
 			})
 			break
 		}
@@ -1486,6 +2129,12 @@ export const webviewMessageHandler = async (
 			break
 		}
 
+		case "fetchMarketplaceData": {
+			// Fetch marketplace data on demand
+			await provider.fetchMarketplaceData()
+			break
+		}
+
 		case "installMarketplaceItem": {
 			if (marketplaceManager && message.mpItem && message.mpInstallOptions) {
 				try {
@@ -1495,6 +2144,7 @@ export const webviewMessageHandler = async (
 					)
 					await provider.postStateToWebview()
 					console.log(`Marketplace item installed and config file opened: ${configFilePath}`)
+
 					// Send success message to webview
 					provider.postMessageToWebview({
 						type: "marketplaceInstallResult",
@@ -1547,7 +2197,11 @@ export const webviewMessageHandler = async (
 
 		case "switchTab": {
 			if (message.tab) {
-				// Send a message to the webview to switch to the specified tab
+				// Capture tab shown event for all switchTab messages (which are user-initiated)
+				if (TelemetryService.hasInstance()) {
+					TelemetryService.instance.captureTabShown(message.tab)
+				}
+
 				await provider.postMessageToWebview({ type: "action", action: "switchTab", tab: message.tab })
 			}
 			break

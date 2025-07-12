@@ -44,27 +44,82 @@
 		"selectProviderPlaceholder": "Sağlayıcı seç",
 		"openaiProvider": "OpenAI",
 		"ollamaProvider": "Ollama",
+		"geminiProvider": "Gemini",
+		"geminiApiKeyLabel": "API Anahtarı:",
+		"geminiApiKeyPlaceholder": "Gemini API anahtarınızı girin",
 		"openaiCompatibleProvider": "OpenAI Uyumlu",
-		"openaiCompatibleBaseUrlLabel": "Temel URL:",
-		"openaiCompatibleApiKeyLabel": "API Anahtarı:",
-		"openaiCompatibleModelDimensionLabel": "Gömme Boyutu:",
-		"openaiCompatibleModelDimensionPlaceholder": "örn., 1536",
-		"openaiCompatibleModelDimensionDescription": "Modeliniz için gömme boyutu (çıktı boyutu). Bu değer için sağlayıcınızın belgelerine bakın. Yaygın değerler: 384, 768, 1536, 3072.",
-		"openaiKeyLabel": "OpenAI Anahtarı:",
+		"openAiKeyLabel": "OpenAI API Anahtarı",
+		"openAiKeyPlaceholder": "OpenAI API anahtarınızı girin",
+		"openAiCompatibleBaseUrlLabel": "Temel URL",
+		"openAiCompatibleApiKeyLabel": "API Anahtarı",
+		"openAiCompatibleApiKeyPlaceholder": "API anahtarınızı girin",
+		"openAiCompatibleModelDimensionLabel": "Gömme Boyutu:",
+		"modelDimensionLabel": "Model Boyutu",
+		"openAiCompatibleModelDimensionPlaceholder": "örn., 1536",
+		"openAiCompatibleModelDimensionDescription": "Modeliniz için gömme boyutu (çıktı boyutu). Bu değer için sağlayıcınızın belgelerine bakın. Yaygın değerler: 384, 768, 1536, 3072.",
 		"modelLabel": "Model",
 		"selectModelPlaceholder": "Model seç",
 		"ollamaUrlLabel": "Ollama URL:",
 		"qdrantUrlLabel": "Qdrant URL",
 		"qdrantKeyLabel": "Qdrant Anahtarı:",
-		"startIndexingButton": "İndekslemeyi Başlat",
-		"clearIndexDataButton": "İndeks Verilerini Temizle",
+		"startIndexingButton": "Başlat",
+		"clearIndexDataButton": "İndeks Temizle",
 		"unsavedSettingsMessage": "İndeksleme işlemini başlatmadan önce lütfen ayarlarını kaydet.",
 		"clearDataDialog": {
 			"title": "Emin misiniz?",
 			"description": "Bu işlem geri alınamaz. Bu, kod tabanı indeks verilerinizi kalıcı olarak silecektir.",
 			"cancelButton": "İptal",
 			"confirmButton": "Verileri Temizle"
-		}
+		},
+		"description": "Projenizin anlamsal aramasını etkinleştirmek için kod tabanı indeksleme ayarlarını yapılandırın. <0>Daha fazla bilgi</0>",
+		"statusTitle": "Durum",
+		"settingsTitle": "İndeksleme Ayarları",
+		"disabledMessage": "Kod tabanı indeksleme şu anda devre dışı. İndeksleme seçeneklerini yapılandırmak için genel ayarlarda etkinleştirin.",
+		"embedderProviderLabel": "Gömücü Sağlayıcı",
+		"modelPlaceholder": "Model adını girin",
+		"selectModel": "Bir model seçin",
+		"ollamaBaseUrlLabel": "Ollama Temel URL",
+		"qdrantApiKeyLabel": "Qdrant API Anahtarı",
+		"qdrantApiKeyPlaceholder": "Qdrant API anahtarınızı girin (isteğe bağlı)",
+		"setupConfigLabel": "Kurulum",
+		"ollamaUrlPlaceholder": "http://localhost:11434",
+		"openAiCompatibleBaseUrlPlaceholder": "https://api.example.com",
+		"modelDimensionPlaceholder": "1536",
+		"qdrantUrlPlaceholder": "http://localhost:6333",
+		"saveError": "Ayarlar kaydedilemedi",
+		"modelDimensions": "({{dimension}} boyut)",
+		"saveSuccess": "Ayarlar başarıyla kaydedildi",
+		"saving": "Kaydediliyor...",
+		"saveSettings": "Kaydet",
+		"indexingStatuses": {
+			"standby": "Bekleme",
+			"indexing": "İndeksleniyor",
+			"indexed": "İndekslendi",
+			"error": "Hata"
+		},
+		"close": "Kapat",
+		"validation": {
+			"invalidQdrantUrl": "Geçersiz Qdrant URL'si",
+			"invalidOllamaUrl": "Geçersiz Ollama URL'si",
+			"invalidBaseUrl": "Geçersiz temel URL'si",
+			"qdrantUrlRequired": "Qdrant URL'si gereklidir",
+			"openaiApiKeyRequired": "OpenAI API anahtarı gereklidir",
+			"modelSelectionRequired": "Model seçimi gereklidir",
+			"apiKeyRequired": "API anahtarı gereklidir",
+			"modelIdRequired": "Model kimliği gereklidir",
+			"modelDimensionRequired": "Model boyutu gereklidir",
+			"geminiApiKeyRequired": "Gemini API anahtarı gereklidir",
+			"ollamaBaseUrlRequired": "Ollama temel URL'si gereklidir",
+			"baseUrlRequired": "Temel URL'si gereklidir",
+			"modelDimensionMinValue": "Model boyutu 0'dan büyük olmalıdır"
+		},
+		"advancedConfigLabel": "Gelişmiş Yapılandırma",
+		"searchMinScoreLabel": "Arama Skoru Eşiği",
+		"searchMinScoreDescription": "Arama sonuçları için gereken minimum benzerlik puanı (0.0-1.0). Düşük değerler daha fazla sonuç döndürür ancak daha az alakalı olabilir. Yüksek değerler daha az ancak daha alakalı sonuçlar döndürür.",
+		"searchMinScoreResetTooltip": "Varsayılan değere sıfırla (0.4)",
+		"searchMaxResultsLabel": "Maksimum Arama Sonuçları",
+		"searchMaxResultsDescription": "Kod tabanı dizinini sorgularken döndürülecek maksimum arama sonucu sayısı. Daha yüksek değerler daha fazla bağlam sağlar ancak daha az alakalı sonuçlar içerebilir.",
+		"resetToDefault": "Varsayılana sıfırla"
 	},
 	"autoApprove": {
 		"description": "Roo'nun onay gerektirmeden otomatik olarak işlemler gerçekleştirmesine izin verin. Bu ayarları yalnızca yapay zekaya tamamen güveniyorsanız ve ilgili güvenlik risklerini anlıyorsanız etkinleştirin.",
@@ -110,6 +165,11 @@
 			"label": "Alt Görevler",
 			"description": "Onay gerektirmeden alt görevlerin oluşturulmasına ve tamamlanmasına izin ver"
 		},
+		"followupQuestions": {
+			"label": "Soru",
+			"description": "Yapılandırılan zaman aşımından sonra takip sorularına ilişkin ilk önerilen yanıtı otomatik olarak seç",
+			"timeoutLabel": "İlk yanıtı otomatik olarak seçmeden önce beklenecek süre"
+		},
 		"execute": {
 			"label": "Yürüt",
 			"description": "Onay gerektirmeden otomatik olarak izin verilen terminal komutlarını yürüt",
@@ -117,6 +177,10 @@
 			"allowedCommandsDescription": "\"Yürütme işlemlerini her zaman onayla\" etkinleştirildiğinde otomatik olarak yürütülebilen komut önekleri. Tüm komutlara izin vermek için * ekleyin (dikkatli kullanın).",
 			"commandPlaceholder": "Komut öneki girin (örn. 'git ')",
 			"addButton": "Ekle"
+		},
+		"updateTodoList": {
+			"label": "Todo",
+			"description": "Yapılacaklar listesi onay gerektirmeden otomatik olarak güncellenir"
 		},
 		"apiRequestLimit": {
 			"title": "Maksimum İstek",
@@ -142,6 +206,8 @@
 		"createProfile": "Profil oluştur",
 		"cannotDeleteOnlyProfile": "Yalnızca tek profili silemezsiniz",
 		"searchPlaceholder": "Profilleri ara",
+		"searchProviderPlaceholder": "Sağlayıcıları ara",
+		"noProviderMatchFound": "Eşleşen sağlayıcı bulunamadı",
 		"noMatchFound": "Eşleşen profil bulunamadı",
 		"vscodeLmDescription": "VS Code Dil Modeli API'si, diğer VS Code uzantıları tarafından sağlanan modelleri çalıştırmanıza olanak tanır (GitHub Copilot dahil ancak bunlarla sınırlı değildir). Başlamanın en kolay yolu, VS Code Marketplace'ten Copilot ve Copilot Chat uzantılarını yüklemektir.",
 		"awsCustomArnUse": "Kullanmak istediğiniz model için geçerli bir Amazon Bedrock ARN'si girin. Format örnekleri:",
@@ -303,7 +369,14 @@
 			"medium": "Orta",
 			"low": "Düşük"
 		},
-		"setReasoningLevel": "Akıl Yürütme Çabasını Etkinleştir"
+		"setReasoningLevel": "Akıl Yürütme Çabasını Etkinleştir",
+		"claudeCode": {
+			"pathLabel": "Claude Code Yolu",
+			"description": "Claude Code CLI'nize isteğe bağlı yol. Ayarlanmazsa varsayılan olarak 'claude' kullanılır.",
+			"placeholder": "Varsayılan: claude",
+			"maxTokensLabel": "Maksimum Çıktı Token sayısı",
+			"maxTokensDescription": "Claude Code yanıtları için maksimum çıktı token sayısı. Varsayılan 8000'dir."
+		}
 	},
 	"browser": {
 		"enable": {
@@ -370,7 +443,8 @@
 			"hint": "Boş = varsayılan promptu kullan"
 		},
 		"autoCondenseContext": {
-			"name": "Akıllı bağlam sıkıştırmayı otomatik olarak tetikle"
+			"name": "Akıllı bağlam sıkıştırmayı otomatik olarak tetikle",
+			"description": "Etkinleştirildiğinde, Roo eşiğe ulaşıldığında bağlamı otomatik olarak sıkıştırır. Devre dışı bırakıldığında, bağlam sıkıştırmayı hala manuel olarak tetikleyebilirsiniz."
 		},
 		"openTabs": {
 			"label": "Açık sekmeler bağlam sınırı",
@@ -393,6 +467,15 @@
 		"maxConcurrentFileReads": {
 			"label": "Eşzamanlı dosya okuma sınırı",
 			"description": "'read_file' aracının aynı anda işleyebileceği maksimum dosya sayısı. Daha yüksek değerler birden çok küçük dosyanın okunmasını hızlandırabilir ancak bellek kullanımını artırır."
+		},
+		"condensingThreshold": {
+			"label": "Sıkıştırma Tetikleme Eşiği",
+			"selectProfile": "Profil için eşik yapılandır",
+			"defaultProfile": "Küresel Varsayılan (tüm profiller)",
+			"defaultDescription": "Bağlam bu yüzdeye ulaştığında, özel ayarları olmadıkça tüm profiller için otomatik olarak sıkıştırılacak",
+			"profileDescription": "Sadece bu profil için özel eşik (küresel varsayılanı geçersiz kılar)",
+			"inheritDescription": "Bu profil küresel varsayılan eşiği miras alır ({{threshold}}%)",
+			"usesGlobal": "(küresel {{threshold}}% kullanır)"
 		}
 	},
 	"terminal": {
@@ -500,10 +583,6 @@
 		"MARKETPLACE": {
 			"name": "Marketplace'i Etkinleştir",
 			"description": "Etkinleştirildiğinde, Marketplace'ten MCP'leri ve özel modları yükleyebilirsiniz."
-		},
-		"DISABLE_COMPLETION_COMMAND": {
-			"name": "attempt_completion'da komut yürütmeyi devre dışı bırak",
-			"description": "Etkinleştirildiğinde, attempt_completion aracı komutları yürütmez. Bu, görev tamamlandığında komut yürütmenin kullanımdan kaldırılmasına hazırlanmak için deneysel bir özelliktir."
 		},
 		"MULTI_FILE_APPLY_DIFF": {
 			"name": "Eşzamanlı dosya düzenlemelerini etkinleştir",
