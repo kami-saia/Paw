@@ -648,6 +648,10 @@
 		"MULTI_FILE_APPLY_DIFF": {
 			"name": "Enable concurrent file edits",
 			"description": "When enabled, Roo can edit multiple files in a single request. When disabled, Roo must edit files one at a time. Disabling this can help when working with less capable models or when you want more control over file modifications."
+		},
+		"SEMANTIC_MEMORY": {
+			"name": "Enable semantic memory",
+			"description": "When enabled, Roo will automatically store conversation exchanges in semantic memory for context enrichment in future conversations. This helps maintain context across tasks and improves response relevance."
 		}
 	},
 	"promptCaching": {
