@@ -23,11 +23,21 @@ describe("experiments", () => {
 		})
 	})
 
+	describe("SEMANTIC_MEMORY", () => {
+		it("is configured correctly", () => {
+			expect(EXPERIMENT_IDS.SEMANTIC_MEMORY).toBe("semanticMemory")
+			expect(experimentConfigsMap.SEMANTIC_MEMORY).toMatchObject({
+				enabled: true,
+			})
+		})
+	})
+
 	describe("isEnabled", () => {
 		it("returns false when POWER_STEERING experiment is not enabled", () => {
 			const experiments: Record<ExperimentId, boolean> = {
 				powerSteering: false,
 				multiFileApplyDiff: false,
+				semanticMemory: true,
 			}
 			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.POWER_STEERING)).toBe(false)
 		})
@@ -36,6 +46,7 @@ describe("experiments", () => {
 			const experiments: Record<ExperimentId, boolean> = {
 				powerSteering: true,
 				multiFileApplyDiff: false,
+				semanticMemory: true,
 			}
 			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.POWER_STEERING)).toBe(true)
 		})
@@ -44,8 +55,27 @@ describe("experiments", () => {
 			const experiments: Record<ExperimentId, boolean> = {
 				powerSteering: false,
 				multiFileApplyDiff: false,
+				semanticMemory: true,
 			}
 			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.POWER_STEERING)).toBe(false)
+		})
+
+		it("returns true when SEMANTIC_MEMORY experiment is enabled", () => {
+			const experiments: Record<ExperimentId, boolean> = {
+				powerSteering: false,
+				multiFileApplyDiff: false,
+				semanticMemory: true,
+			}
+			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.SEMANTIC_MEMORY)).toBe(true)
+		})
+
+		it("returns false when SEMANTIC_MEMORY experiment is disabled", () => {
+			const experiments: Record<ExperimentId, boolean> = {
+				powerSteering: false,
+				multiFileApplyDiff: false,
+				semanticMemory: false,
+			}
+			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.SEMANTIC_MEMORY)).toBe(false)
 		})
 	})
 })

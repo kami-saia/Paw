@@ -1149,8 +1149,16 @@ export class Task extends EventEmitter<ClineEvents> {
 		}
 
 		try {
-			const { mcpEnabled } = (await provider.getState()) ?? {}
-			if (mcpEnabled ?? true) {
+			const state = (await provider.getState()) ?? {}
+			const { mcpEnabled, experiments: experimentSettings } = state
+
+			// Check if semantic memory is enabled through experimental setting
+			const isSemanticMemoryEnabled = experiments.isEnabled(
+				experimentSettings ?? {},
+				EXPERIMENT_IDS.SEMANTIC_MEMORY,
+			)
+
+			if ((mcpEnabled ?? true) && isSemanticMemoryEnabled) {
 				const mcpHub = await McpServerManager.getInstance(provider.context, provider)
 				if (mcpHub) {
 					this.semanticMemoryIntegration = new SemanticMemoryIntegration(mcpHub, this)
