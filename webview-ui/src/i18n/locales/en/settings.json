@@ -41,7 +41,7 @@
 		"description": "Configure codebase indexing settings to enable semantic search of your project. <0>Learn more</0>",
 		"statusTitle": "Status",
 		"enableLabel": "Enable Codebase Indexing",
-		"enableDescription": "<0>Codebase Indexing</0> is an experimental feature that creates a semantic search index of your project using AI embeddings. This enables Roo Code to better understand and navigate large codebases by finding relevant code based on meaning rather than just keywords.",
+		"enableDescription": "Enable code indexing for improved search and context understanding",
 		"settingsTitle": "Indexing Settings",
 		"disabledMessage": "Codebase indexing is currently disabled. Enable it in the global settings to configure indexing options.",
 		"providerLabel": "Embeddings Provider",
@@ -52,6 +52,9 @@
 		"geminiProvider": "Gemini",
 		"geminiApiKeyLabel": "API Key:",
 		"geminiApiKeyPlaceholder": "Enter your Gemini API key",
+		"mistralProvider": "Mistral",
+		"mistralApiKeyLabel": "API Key:",
+		"mistralApiKeyPlaceholder": "Enter your Mistral API key",
 		"openaiCompatibleProvider": "OpenAI Compatible",
 		"openAiKeyLabel": "OpenAI API Key",
 		"openAiKeyPlaceholder": "Enter your OpenAI API key",
@@ -116,6 +119,7 @@
 			"modelIdRequired": "Model ID is required",
 			"modelDimensionRequired": "Model dimension is required",
 			"geminiApiKeyRequired": "Gemini API key is required",
+			"mistralApiKeyRequired": "Mistral API key is required",
 			"ollamaBaseUrlRequired": "Ollama base URL is required",
 			"baseUrlRequired": "Base URL is required",
 			"modelDimensionMinValue": "Model dimension must be greater than 0"
@@ -175,8 +179,12 @@
 			"description": "Automatically execute allowed terminal commands without requiring approval",
 			"allowedCommands": "Allowed Auto-Execute Commands",
 			"allowedCommandsDescription": "Command prefixes that can be auto-executed when \"Always approve execute operations\" is enabled. Add * to allow all commands (use with caution).",
+			"deniedCommands": "Denied Commands",
+			"deniedCommandsDescription": "Command prefixes that will be automatically denied without asking for approval. In case of conflicts with allowed commands, the longest prefix match takes precedence. Add * to deny all commands.",
 			"commandPlaceholder": "Enter command prefix (e.g., 'git ')",
-			"addButton": "Add"
+			"deniedCommandPlaceholder": "Enter command prefix to deny (e.g., 'rm -rf')",
+			"addButton": "Add",
+			"autoDenied": "Commands with the prefix `{{prefix}}` have been forbidden by the user. Do not bypass this restriction by running another command."
 		},
 		"updateTodoList": {
 			"label": "Todo",
@@ -186,7 +194,10 @@
 			"title": "Max Requests",
 			"description": "Automatically make this many API requests before asking for approval to continue with the task.",
 			"unlimited": "Unlimited"
-		}
+		},
+		"toggleAriaLabel": "Toggle auto-approval",
+		"disabledAriaLabel": "Auto-approval disabled - select options first",
+		"selectOptionsFirst": "Select at least one option below to enable auto-approval"
 	},
 	"providers": {
 		"providerDocumentation": "{{provider}} documentation",
@@ -242,9 +253,25 @@
 		"getChutesApiKey": "Get Chutes API Key",
 		"deepSeekApiKey": "DeepSeek API Key",
 		"getDeepSeekApiKey": "Get DeepSeek API Key",
+		"moonshotApiKey": "Moonshot API Key",
+		"getMoonshotApiKey": "Get Moonshot API Key",
+		"moonshotBaseUrl": "Moonshot Entrypoint",
 		"geminiApiKey": "Gemini API Key",
 		"getGroqApiKey": "Get Groq API Key",
 		"groqApiKey": "Groq API Key",
+		"getHuggingFaceApiKey": "Get Hugging Face API Key",
+		"huggingFaceApiKey": "Hugging Face API Key",
+		"huggingFaceModelId": "Model ID",
+		"huggingFaceLoading": "Loading...",
+		"huggingFaceModelsCount": "({{count}} models)",
+		"huggingFaceSelectModel": "Select a model...",
+		"huggingFaceSearchModels": "Search models...",
+		"huggingFaceNoModelsFound": "No models found",
+		"huggingFaceProvider": "Provider",
+		"huggingFaceProviderAuto": "Auto",
+		"huggingFaceSelectProvider": "Select a provider...",
+		"huggingFaceSearchProviders": "Search providers...",
+		"huggingFaceNoProvidersFound": "No providers found",
 		"getGeminiApiKey": "Get Gemini API Key",
 		"openAiApiKey": "OpenAI API Key",
 		"apiKey": "API Key",
@@ -260,6 +287,7 @@
 		"litellmBaseUrl": "LiteLLM Base URL",
 		"awsCredentials": "AWS Credentials",
 		"awsProfile": "AWS Profile",
+		"awsApiKey": "Amazon Bedrock API Key",
 		"awsProfileName": "AWS Profile Name",
 		"awsAccessKey": "AWS Access Key",
 		"awsSecretKey": "AWS Secret Key",
@@ -362,6 +390,12 @@
 		"rateLimitSeconds": {
 			"label": "Rate limit",
 			"description": "Minimum time between API requests."
+		},
+		"consecutiveMistakeLimit": {
+			"label": "Error & Repetition Limit",
+			"description": "Number of consecutive errors or repeated actions before showing 'Roo is having trouble' dialog",
+			"unlimitedDescription": "Unlimited retries enabled (auto-proceed). The dialog will never appear.",
+			"warning": "⚠️ Setting to 0 allows unlimited retries which may consume significant API usage"
 		},
 		"reasoningEffort": {
 			"label": "Model Reasoning Effort",
@@ -468,6 +502,22 @@
 			"lines": "lines",
 			"always_full_read": "Always read entire file"
 		},
+		"diagnostics": {
+			"includeMessages": {
+				"label": "Automatically include diagnostics in context",
+				"description": "When enabled, diagnostic messages (errors) from edited files will be automatically included in the context. You can always manually include all workspace diagnostics using @problems."
+			},
+			"maxMessages": {
+				"label": "Maximum diagnostic messages",
+				"description": "Limits the number of diagnostic messages (errors, warnings) included in the context. When set, only this many diagnostics will be shown, prioritizing errors over warnings. Set to 0 for unlimited diagnostics.",
+				"resetTooltip": "Reset to default value (50)",
+				"unlimitedLabel": "Unlimited"
+			},
+			"delayAfterWrite": {
+				"label": "Delay after writes to allow diagnostics to detect potential problems",
+				"description": "Time to wait after file writes before proceeding, allowing diagnostic tools to process changes and detect issues."
+			}
+		},
 		"condensingThreshold": {
 			"label": "Condensing Trigger Threshold",
 			"selectProfile": "Configure threshold for profile",
@@ -490,6 +540,10 @@
 		"outputLineLimit": {
 			"label": "Terminal output limit",
 			"description": "Maximum number of lines to include in terminal output when executing commands. When exceeded lines will be removed from the middle, saving tokens. <0>Learn more</0>"
+		},
+		"outputCharacterLimit": {
+			"label": "Terminal character limit",
+			"description": "Maximum number of characters to include in terminal output when executing commands. This limit takes precedence over the line limit to prevent memory issues from extremely long lines. When exceeded, output will be truncated. <0>Learn more</0>"
 		},
 		"shellIntegrationTimeout": {
 			"label": "Terminal shell integration timeout",
@@ -532,6 +586,9 @@
 			"description": "When enabled, the terminal will inherit environment variables from VSCode's parent process, such as user-profile-defined shell integration settings. This directly toggles VSCode global setting `terminal.integrated.inheritEnv`. <0>Learn more</0>"
 		}
 	},
+	"advancedSettings": {
+		"title": "Advanced settings"
+	},
 	"advanced": {
 		"diff": {
 			"label": "Enable editing through diffs",
@@ -553,6 +610,10 @@
 				"label": "Match precision",
 				"description": "This slider controls how precisely code sections must match when applying diffs. Lower values allow more flexible matching but increase the risk of incorrect replacements. Use values below 100% with extreme caution."
 			}
+		},
+		"todoList": {
+			"label": "Enable todo list tool",
+			"description": "When enabled, Roo can create and manage todo lists to track task progress. This helps organize complex tasks into manageable steps."
 		}
 	},
 	"experimental": {

@@ -39,7 +39,7 @@
 	"codeIndex": {
 		"title": "Indeksowanie kodu",
 		"enableLabel": "Włącz indeksowanie kodu",
-		"enableDescription": "<0>Indeksowanie kodu</0> to eksperymentalna funkcja, która tworzy semantyczny indeks wyszukiwania Twojego projektu przy użyciu osadzeń AI. Umożliwia to Roo Code lepsze zrozumienie i nawigację po dużych bazach kodu poprzez znajdowanie odpowiedniego kodu na podstawie znaczenia, a nie tylko słów kluczowych.",
+		"enableDescription": "Włącz indeksowanie kodu, aby poprawić wyszukiwanie i zrozumienie kontekstu",
 		"providerLabel": "Dostawca osadzania",
 		"selectProviderPlaceholder": "Wybierz dostawcę",
 		"openaiProvider": "OpenAI",
@@ -47,6 +47,9 @@
 		"geminiProvider": "Gemini",
 		"geminiApiKeyLabel": "Klucz API:",
 		"geminiApiKeyPlaceholder": "Wprowadź swój klucz API Gemini",
+		"mistralProvider": "Mistral",
+		"mistralApiKeyLabel": "Klucz API:",
+		"mistralApiKeyPlaceholder": "Wprowadź swój klucz API Mistral",
 		"openaiCompatibleProvider": "Kompatybilny z OpenAI",
 		"openAiKeyLabel": "Klucz API OpenAI",
 		"openAiKeyPlaceholder": "Wprowadź swój klucz API OpenAI",
@@ -109,6 +112,7 @@
 			"modelIdRequired": "Wymagane jest ID modelu",
 			"modelDimensionRequired": "Wymagany jest wymiar modelu",
 			"geminiApiKeyRequired": "Wymagany jest klucz API Gemini",
+			"mistralApiKeyRequired": "Klucz API Mistral jest wymagany",
 			"ollamaBaseUrlRequired": "Wymagany jest bazowy adres URL Ollama",
 			"baseUrlRequired": "Wymagany jest bazowy adres URL",
 			"modelDimensionMinValue": "Wymiar modelu musi być większy niż 0"
@@ -123,6 +127,8 @@
 	},
 	"autoApprove": {
 		"description": "Pozwól Roo na automatyczne wykonywanie operacji bez wymagania zatwierdzenia. Włącz te ustawienia tylko jeśli w pełni ufasz AI i rozumiesz związane z tym zagrożenia bezpieczeństwa.",
+		"toggleAriaLabel": "Przełącz automatyczne zatwierdzanie",
+		"disabledAriaLabel": "Automatyczne zatwierdzanie wyłączone - najpierw wybierz opcje",
 		"readOnly": {
 			"label": "Odczyt",
 			"description": "Gdy włączone, Roo automatycznie będzie wyświetlać zawartość katalogów i czytać pliki bez konieczności klikania przycisku Zatwierdź.",
@@ -175,8 +181,12 @@
 			"description": "Automatycznie wykonuj dozwolone polecenia terminala bez konieczności zatwierdzania",
 			"allowedCommands": "Dozwolone polecenia auto-wykonania",
 			"allowedCommandsDescription": "Prefiksy poleceń, które mogą być automatycznie wykonywane, gdy \"Zawsze zatwierdzaj operacje wykonania\" jest włączone. Dodaj * aby zezwolić na wszystkie polecenia (używaj z ostrożnością).",
+			"deniedCommands": "Odrzucone polecenia",
+			"deniedCommandsDescription": "Prefiksy poleceń, które będą automatycznie odrzucane bez pytania o zatwierdzenie. W przypadku konfliktów z dozwolonymi poleceniami, najdłuższe dopasowanie prefiksu ma pierwszeństwo. Dodaj * aby odrzucić wszystkie polecenia.",
 			"commandPlaceholder": "Wprowadź prefiks polecenia (np. 'git ')",
-			"addButton": "Dodaj"
+			"deniedCommandPlaceholder": "Wprowadź prefiks polecenia do odrzucenia (np. 'rm -rf')",
+			"addButton": "Dodaj",
+			"autoDenied": "Polecenia z prefiksem `{{prefix}}` zostały zabronione przez użytkownika. Nie obchodź tego ograniczenia uruchamiając inne polecenie."
 		},
 		"updateTodoList": {
 			"label": "Todo",
@@ -186,7 +196,8 @@
 			"title": "Maksymalna liczba żądań",
 			"description": "Automatycznie wykonaj tyle żądań API przed poproszeniem o zgodę na kontynuowanie zadania.",
 			"unlimited": "Bez limitu"
-		}
+		},
+		"selectOptionsFirst": "Wybierz co najmniej jedną opcję poniżej, aby włączyć automatyczne zatwierdzanie"
 	},
 	"providers": {
 		"providerDocumentation": "Dokumentacja {{provider}}",
@@ -242,10 +253,26 @@
 		"getChutesApiKey": "Uzyskaj klucz API Chutes",
 		"deepSeekApiKey": "Klucz API DeepSeek",
 		"getDeepSeekApiKey": "Uzyskaj klucz API DeepSeek",
+		"moonshotApiKey": "Klucz API Moonshot",
+		"getMoonshotApiKey": "Uzyskaj klucz API Moonshot",
+		"moonshotBaseUrl": "Punkt wejścia Moonshot",
 		"geminiApiKey": "Klucz API Gemini",
 		"getGroqApiKey": "Uzyskaj klucz API Groq",
 		"groqApiKey": "Klucz API Groq",
 		"getGeminiApiKey": "Uzyskaj klucz API Gemini",
+		"getHuggingFaceApiKey": "Uzyskaj klucz API Hugging Face",
+		"huggingFaceApiKey": "Klucz API Hugging Face",
+		"huggingFaceModelId": "ID modelu",
+		"huggingFaceLoading": "Ładowanie...",
+		"huggingFaceModelsCount": "({{count}} modeli)",
+		"huggingFaceSelectModel": "Wybierz model...",
+		"huggingFaceSearchModels": "Szukaj modeli...",
+		"huggingFaceNoModelsFound": "Nie znaleziono modeli",
+		"huggingFaceProvider": "Dostawca",
+		"huggingFaceProviderAuto": "Automatyczny",
+		"huggingFaceSelectProvider": "Wybierz dostawcę...",
+		"huggingFaceSearchProviders": "Szukaj dostawców...",
+		"huggingFaceNoProvidersFound": "Nie znaleziono dostawców",
 		"apiKey": "Klucz API",
 		"openAiApiKey": "Klucz API OpenAI",
 		"openAiBaseUrl": "URL bazowy",
@@ -260,6 +287,7 @@
 		"litellmBaseUrl": "URL bazowy LiteLLM",
 		"awsCredentials": "Poświadczenia AWS",
 		"awsProfile": "Profil AWS",
+		"awsApiKey": "Klucz API Amazon Bedrock",
 		"awsProfileName": "Nazwa profilu AWS",
 		"awsAccessKey": "Klucz dostępu AWS",
 		"awsSecretKey": "Klucz tajny AWS",
@@ -362,6 +390,12 @@
 		"rateLimitSeconds": {
 			"label": "Limit szybkości",
 			"description": "Minimalny czas między żądaniami API."
+		},
+		"consecutiveMistakeLimit": {
+			"label": "Limit błędów i powtórzeń",
+			"description": "Liczba kolejnych błędów lub powtórzonych akcji przed wyświetleniem okna dialogowego 'Roo ma problemy'",
+			"unlimitedDescription": "Włączono nieograniczone próby (automatyczne kontynuowanie). Okno dialogowe nigdy się nie pojawi.",
+			"warning": "⚠️ Ustawienie na 0 pozwala na nieograniczone próby, co może zużyć znaczną ilość API"
 		},
 		"reasoningEffort": {
 			"label": "Wysiłek rozumowania modelu",
@@ -468,6 +502,23 @@
 			"label": "Limit jednoczesnych odczytów",
 			"description": "Maksymalna liczba plików, które narzędzie 'read_file' może przetwarzać jednocześnie. Wyższe wartości mogą przyspieszyć odczyt wielu małych plików, ale zwiększają zużycie pamięci."
 		},
+		"diagnostics": {
+			"includeMessages": {
+				"label": "Automatycznie dołączaj diagnostykę do kontekstu",
+				"description": "Gdy włączone, komunikaty diagnostyczne (błędy) z edytowanych plików będą automatycznie dołączane do kontekstu. Zawsze możesz ręcznie dołączyć całą diagnostykę obszaru roboczego używając @problems."
+			},
+			"maxMessages": {
+				"label": "Maksymalna liczba komunikatów diagnostycznych",
+				"description": "Maksymalna liczba komunikatów diagnostycznych dołączanych na plik. Ten limit dotyczy zarówno automatycznego dołączania (gdy pole wyboru jest włączone) jak i ręcznych wzmianek @problems. Wyższe wartości dostarczają więcej kontekstu, ale zwiększają zużycie tokenów.",
+				"resetTooltip": "Resetuj do wartości domyślnej (50)",
+				"unlimited": "Nieograniczone komunikaty diagnostyczne",
+				"unlimitedLabel": "Nieograniczone"
+			},
+			"delayAfterWrite": {
+				"label": "Opóźnienie po zapisie, aby umożliwić diagnostyce wykrycie potencjalnych problemów",
+				"description": "Czas oczekiwania po zapisie plików przed kontynuowaniem, aby narzędzia diagnostyczne mogły przetworzyć zmiany i wykryć problemy."
+			}
+		},
 		"condensingThreshold": {
 			"label": "Próg wyzwalania kondensacji",
 			"selectProfile": "Skonfiguruj próg dla profilu",
@@ -490,6 +541,10 @@
 		"outputLineLimit": {
 			"label": "Limit wyjścia terminala",
 			"description": "Maksymalna liczba linii do uwzględnienia w wyjściu terminala podczas wykonywania poleceń. Po przekroczeniu linie będą usuwane ze środka, oszczędzając token. <0>Dowiedz się więcej</0>"
+		},
+		"outputCharacterLimit": {
+			"label": "Limit znaków w terminalu",
+			"description": "Maksymalna liczba znaków do uwzględnienia w danych wyjściowych terminala podczas wykonywania poleceń. Limit ten ma pierwszeństwo przed limitem linii, aby zapobiec problemom z pamięcią spowodowanym przez bardzo długie linie. Po przekroczeniu limitu dane wyjściowe zostaną obcięte. <0>Dowiedz się więcej</0>"
 		},
 		"shellIntegrationTimeout": {
 			"label": "Limit czasu integracji powłoki terminala",
@@ -532,6 +587,9 @@
 			"description": "Po włączeniu terminal dziedziczy zmienne środowiskowe z procesu nadrzędnego VSCode, takie jak ustawienia integracji powłoki zdefiniowane w profilu użytkownika. Przełącza to bezpośrednio globalne ustawienie VSCode `terminal.integrated.inheritEnv`. <0>Dowiedz się więcej</0>"
 		}
 	},
+	"advancedSettings": {
+		"title": "Ustawienia zaawansowane"
+	},
 	"advanced": {
 		"diff": {
 			"label": "Włącz edycję przez różnice",
@@ -553,6 +611,10 @@
 				"label": "Precyzja dopasowania",
 				"description": "Ten suwak kontroluje, jak dokładnie sekcje kodu muszą pasować podczas stosowania różnic. Niższe wartości umożliwiają bardziej elastyczne dopasowywanie, ale zwiększają ryzyko nieprawidłowych zamian. Używaj wartości poniżej 100% z najwyższą ostrożnością."
 			}
+		},
+		"todoList": {
+			"label": "Włącz narzędzie listy zadań",
+			"description": "Po włączeniu Roo może tworzyć i zarządzać listami zadań do śledzenia postępu zadań. Pomaga to organizować złożone zadania w łatwe do zarządzania kroki."
 		}
 	},
 	"experimental": {
