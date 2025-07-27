@@ -41,7 +41,8 @@ export class SemanticMemoryIntegration {
 		this.mcpHub = mcpHub
 		this.task = task
 		this.subscribeToTaskEvents()
-		// When a new integration instance is created, immediately try to sync history.
+		// When a new integration instance is created, sync history if needed
+		// This handles the case where semantic memory is enabled mid-conversation
 		this.syncHistory().catch((err) => {
 			console.error(`[SemanticMemoryIntegration Task ${this.task.taskId}] Initial history sync failed:`, err)
 		})
@@ -50,7 +51,7 @@ export class SemanticMemoryIntegration {
 	private subscribeToTaskEvents(): void {
 		this.task.on("beforeUserMessageEnrichment", this.handleBeforeUserMessageEnrichment.bind(this))
 		this.task.on("afterAssistantResponseProcessed", this.handleAfterAssistantResponseProcessed.bind(this))
-		console.error(`[SemanticMemoryIntegration Task ${this.task.taskId}] Subscribed to task events.`)
+		console.log(`[SemanticMemoryIntegration Task ${this.task.taskId}] Subscribed to task events.`)
 	}
 
 	public async syncHistory(): Promise<void> {
@@ -90,10 +91,21 @@ export class SemanticMemoryIntegration {
 			}
 
 			// 2. Determine the starting point for our local history to sync.
-			// We add 1 because the server's index is 0-based. We want to start with the *next* message.
-			// This logic assumes a rough correspondence between chunk index and message index, which is not perfect but a good heuristic.
-			const localStartIndex = this.lastStoredMessageIndex + 1
+			// If server has stored data, use that as our baseline to avoid re-storing
 			const history = this.task.apiConversationHistory
+			let localStartIndex = this.lastStoredMessageIndex + 1
+
+			// If server already has data and we're starting fresh (lastStoredMessageIndex = -1),
+			// assume the server has stored roughly the same amount as its chunk count
+			if (lastKnownServerIndex >= 0 && this.lastStoredMessageIndex === -1) {
+				// Estimate message index from chunk index (roughly 1:1 for user-assistant pairs)
+				// This prevents re-storing everything when semantic memory is restarted
+				localStartIndex = Math.min(lastKnownServerIndex, history.length)
+				this.lastStoredMessageIndex = localStartIndex - 1
+				console.warn(
+					`[SemanticMemoryIntegration Task ${this.task.taskId}] Server has ${lastKnownServerIndex} chunks, starting sync from message index ${localStartIndex}.`,
+				)
+			}
 
 			if (localStartIndex >= history.length) {
 				console.warn(`[SemanticMemoryIntegration Task ${this.task.taskId}] No new local history to sync.`)
@@ -517,18 +529,19 @@ export class SemanticMemoryIntegration {
 			finalUserMessageToStore = userMessageMatch[1].trim()
 		}
 
-		// Clean only the assistant's response.
+		// Clean both user and assistant messages to prevent storing recalled memories and tool artifacts
+		const cleanedUserMessage = this.cleanMessageContent(finalUserMessageToStore)
 		const cleanedAssistantResponse = this.cleanMessageContent(assistantResponseText)
 
-		if (!finalUserMessageToStore && !cleanedAssistantResponse) {
+		if (!cleanedUserMessage && !cleanedAssistantResponse) {
 			console.warn(
-				`[SemanticMemoryIntegration Task ${this.task.taskId}] storeExchangeInternal: Both user and assistant messages are empty after processing. Skipping.`,
+				`[SemanticMemoryIntegration Task ${this.task.taskId}] storeExchangeInternal: Both user and assistant messages are empty after cleaning. Skipping.`,
 			)
 			return
 		}
 
 		const mcpArgs: StoreExchangeMcpPayload = {
-			userMessage: finalUserMessageToStore,
+			userMessage: cleanedUserMessage,
 			assistantResponse: cleanedAssistantResponse,
 			taskId: taskId,
 			metadata: {
