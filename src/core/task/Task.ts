@@ -1843,7 +1843,6 @@ export class Task extends EventEmitter<ClineEvents> {
 			logger.debug(`Context Window: ${contextWindow}`)
 			logger.debug(`Model Supports Reasoning Budget: ${modelInfo.supportsReasoningBudget}`)
 			logger.debug(`API Configured Max Tokens: ${this.apiConfiguration.modelMaxTokens}`)
-			logger.debug(`Default Thinking Model Max Tokens: ${DEFAULT_THINKING_MODEL_MAX_TOKENS}`)
 			logger.debug(`Final maxTokens for truncation: ${maxTokens}`)
 			logger.debug(`History length before truncation: ${this.apiConversationHistory.length}`)
 
