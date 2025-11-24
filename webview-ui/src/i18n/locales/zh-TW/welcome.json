@@ -1,6 +1,6 @@
 {
 	"greeting": "歡迎使用 Roo Code！",
-	"introduction": "透過一系列內建和可擴充的模式，Roo Code 讓您能夠以前所未有的方式進行規劃、架構設計、編碼、除錯並提升工作效率。",
+	"introduction": "Roo Code 提供一系列內建和可擴充的模式，讓您以前所未有的方式規劃專案、設計架構、編寫程式碼、除錯並提升工作效率。",
 	"notice": "開始使用前，此擴充功能需要一個 API 提供者。",
 	"start": "讓我們開始吧！",
 	"routers": {
@@ -10,18 +10,26 @@
 		},
 		"openrouter": {
 			"description": "LLM 的統一介面"
+		},
+		"roo": {
+			"description": "最優秀的免費模型助你開始",
+			"incentive": "免費試用 Roo"
 		}
 	},
-	"chooseProvider": "Roo 需要一個 API 金鑰才能發揮魔力。",
+	"chooseProvider": "開始使用需要 LLM 提供者：",
+	"providerSignup": {
+		"rooCloudProvider": "Roo Code Cloud 提供者",
+		"rooCloudDescription": "使用 Roo 最簡單的方式。低成本精選的免費和付費模型組合",
+		"learnMore": "了解更多",
+		"useAnotherProvider": "使用其他提供者",
+		"useAnotherProviderDescription": "輸入 API 金鑰即可開始。",
+		"getStarted": "開始使用"
+	},
 	"startRouter": "我們建議使用 LLM 路由器：",
 	"startCustom": "或者您可以使用自己的 API 金鑰：",
 	"telemetry": {
-		"title": "協助改進 Roo Code",
-		"anonymousTelemetry": "傳送匿名的錯誤和使用資料，以協助我們修復錯誤並改進擴充功能。我們絕不會傳送任何程式碼、提示或個人資訊。",
-		"changeSettings": "您隨時可以在<settingsLink>設定</settingsLink>底端更改此選項",
-		"settings": "設定",
-		"allow": "允許",
-		"deny": "拒絕"
+		"helpImprove": "協助改進 Roo Code",
+		"helpImproveMessage": "Roo Code 會收集錯誤和使用資料，協助我們修復錯誤並改善擴充功能。此遙測不會收集程式碼、提示或個人資訊。您可以在<settingsLink>設定</settingsLink>中關閉此設定。"
 	},
 	"importSettings": "匯入設定"
 }

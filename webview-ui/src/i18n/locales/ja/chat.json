@@ -2,12 +2,15 @@
 	"greeting": "Roo Code へようこそ",
 	"task": {
 		"title": "タスク",
+		"expand": "タスクを展開",
+		"collapse": "タスクを折りたたむ",
 		"seeMore": "もっと見る",
 		"seeLess": "表示を減らす",
-		"tokens": "トークン:",
-		"cache": "キャッシュ:",
-		"apiCost": "APIコスト:",
-		"contextWindow": "コンテキストウィンドウ:",
+		"tokens": "トークン",
+		"cache": "キャッシュ",
+		"apiCost": "APIコスト",
+		"size": "サイズ",
+		"contextWindow": "コンテキストウィンドウ",
 		"closeAndStart": "タスクを閉じて新しいタスクを開始",
 		"export": "タスク履歴をエクスポート",
 		"delete": "タスクを削除（Shift + クリックで確認をスキップ）",
@@ -21,7 +24,9 @@
 		"connectToCloudDescription": "タスクを共有するためにRoo Code Cloudにサインイン",
 		"sharingDisabledByOrganization": "組織により共有が無効化されています",
 		"shareSuccessOrganization": "組織リンクをクリップボードにコピーしました",
-		"shareSuccessPublic": "公開リンクをクリップボードにコピーしました"
+		"shareSuccessPublic": "公開リンクをクリップボードにコピーしました",
+		"openInCloud": "Roo Code Cloudでタスクを開く",
+		"openInCloudIntro": "どこからでもRooの監視や操作を続けられます。スキャン、クリック、またはコピーして開いてください。"
 	},
 	"unpin": "ピン留めを解除",
 	"pin": "ピン留め",
@@ -56,7 +61,7 @@
 		"tooltip": "このアクションを承認"
 	},
 	"runCommand": {
-		"title": "コマンド実行",
+		"title": "コマンド",
 		"tooltip": "このコマンドを実行"
 	},
 	"proceedWhileRunning": {
@@ -80,24 +85,17 @@
 		"tooltip": "現在の操作をキャンセル"
 	},
 	"scrollToBottom": "チャットの最下部にスクロール",
-	"about": "AI支援でコードを生成、リファクタリング、デバッグします。詳細については、<DocsLink>ドキュメント</DocsLink>をご覧ください。",
-	"onboarding": "最新のエージェント型コーディング能力の進歩により、複雑なソフトウェア開発タスクをステップバイステップで処理できます。ファイルの作成や編集、複雑なプロジェクトの探索、ブラウザの使用、ターミナルコマンドの実行（許可後）を可能にするツールにより、コード補完や技術サポート以上の方法であなたをサポートできます。MCPを使用して新しいツールを作成し、自分の能力を拡張することもできます。",
+	"about": "Roo Codeは、エディタに常駐するAI開発チームです。",
+	"docs": "詳細については、<DocsLink>ドキュメント</DocsLink>をご確認ください。",
+	"onboarding": "このワークスペースのタスクリストは空です。",
 	"rooTips": {
-		"boomerangTasks": {
-			"title": "タスクオーケストレーション",
-			"description": "タスクをより小さく、管理しやすい部分に分割します。"
-		},
-		"stickyModels": {
-			"title": "スティッキーモード",
-			"description": "各モードは、最後に使用したモデルを記憶しています"
-		},
-		"tools": {
-			"title": "ツール",
-			"description": "AIがWebの閲覧、コマンドの実行などによって問題を解決できるようにします。"
-		},
 		"customizableModes": {
 			"title": "カスタマイズ可能なモード",
-			"description": "独自の動作と割り当てられたモデルを持つ専門的なペルソナ"
+			"description": "タスクに集中し、成果を出す専門のペルソナ。"
+		},
+		"modelAgnostic": {
+			"title": "独自のモデルを持ち込む",
+			"description": "独自のプロバイダーキーを使用したり、ローカルで推論を実行したりできます — マークアップ、ロックイン、制限はありません"
 		}
 	},
 	"selectMode": "対話モードを選択",
@@ -108,7 +106,7 @@
 	"stopTts": "テキスト読み上げを停止",
 	"typeMessage": "メッセージを入力...",
 	"typeTask": "ここにタスクを入力...",
-	"addContext": "コンテキスト追加は@、モード切替は/",
+	"addContext": "コンテキスト追加は@、コマンドは/",
 	"dragFiles": "ファイルをドラッグするにはShiftキーを押したまま",
 	"dragFilesImages": "ファイル/画像をドラッグするにはShiftキーを押したまま",
 	"enhancePromptDescription": "「プロンプトを強化」ボタンは、追加コンテキスト、説明、または言い換えを提供することで、リクエストを改善します。ここにリクエストを入力し、ボタンを再度クリックして動作を確認してください。",
@@ -116,9 +114,11 @@
 		"title": "モード",
 		"marketplace": "モードマーケットプレイス",
 		"settings": "モード設定",
-		"description": "Rooの動作をカスタマイズする専門的なペルソナ。"
+		"description": "Rooの動作をカスタマイズする専門的なペルソナ。",
+		"searchPlaceholder": "モードを検索...",
+		"noResults": "結果が見つかりません"
 	},
-	"errorReadingFile": "ファイル読み込みエラー:",
+	"errorReadingFile": "ファイル読み込みエラー",
 	"noValidImages": "有効な画像が処理されませんでした",
 	"separator": "区切り",
 	"edit": "編集...",
@@ -137,11 +137,13 @@
 		"streamingFailed": "APIストリーミング失敗"
 	},
 	"checkpoint": {
-		"initial": "初期チェックポイント",
 		"regular": "チェックポイント",
 		"initializingWarning": "チェックポイントの初期化中... 時間がかかりすぎる場合は、<settingsLink>設定</settingsLink>でチェックポイントを無効にしてタスクを再開できます。",
 		"menu": {
 			"viewDiff": "差分を表示",
+			"more": "その他のオプション",
+			"viewDiffFromInit": "すべての変更を表示",
+			"viewDiffWithCurrent": "このチェックポイント以降の変更を表示",
 			"restore": "チェックポイントを復元",
 			"restoreFiles": "ファイルを復元",
 			"restoreFilesDescription": "この時点で撮影されたスナップショットにプロジェクトのファイルを復元します。",
@@ -157,46 +159,72 @@
 		"wantsToFetch": "Rooは現在のタスクを支援するための詳細な指示を取得したい"
 	},
 	"fileOperations": {
-		"wantsToRead": "Rooはこのファイルを読みたい:",
-		"wantsToReadOutsideWorkspace": "Rooはワークスペース外のこのファイルを読みたい:",
-		"didRead": "Rooはこのファイルを読みました:",
-		"wantsToEdit": "Rooはこのファイルを編集したい:",
-		"wantsToEditOutsideWorkspace": "Rooはワークスペース外のこのファイルを編集したい:",
-		"wantsToEditProtected": "Rooは保護された設定ファイルを編集したい:",
-		"wantsToCreate": "Rooは新しいファイルを作成したい:",
-		"wantsToSearchReplace": "Rooはこのファイルで検索と置換を行う:",
-		"didSearchReplace": "Rooはこのファイルで検索と置換を実行しました:",
-		"wantsToInsert": "Rooはこのファイルにコンテンツを挿入したい:",
-		"wantsToInsertWithLineNumber": "Rooはこのファイルの{{lineNumber}}行目にコンテンツを挿入したい:",
-		"wantsToInsertAtEnd": "Rooはこのファイルの末尾にコンテンツを追加したい:",
-		"wantsToReadAndXMore": "Roo はこのファイルと他に {{count}} 個のファイルを読み込もうとしています:",
-		"wantsToReadMultiple": "Rooは複数のファイルを読み取ろうとしています：",
-		"wantsToApplyBatchChanges": "Rooは複数のファイルに変更を適用したい:"
+		"wantsToRead": "Rooはこのファイルを読みたい",
+		"wantsToReadOutsideWorkspace": "Rooはワークスペース外のこのファイルを読みたい",
+		"didRead": "Rooはこのファイルを読みました",
+		"wantsToEdit": "Rooはこのファイルを編集したい",
+		"wantsToEditOutsideWorkspace": "Rooはワークスペース外のこのファイルを編集したい",
+		"wantsToEditProtected": "Rooは保護された設定ファイルを編集したい",
+		"wantsToCreate": "Rooは新しいファイルを作成したい",
+		"wantsToSearchReplace": "Rooはこのファイルで検索と置換を行う",
+		"didSearchReplace": "Rooはこのファイルで検索と置換を実行しました",
+		"wantsToInsert": "Rooはこのファイルにコンテンツを挿入したい",
+		"wantsToInsertWithLineNumber": "Rooはこのファイルの{{lineNumber}}行目にコンテンツを挿入したい",
+		"wantsToInsertAtEnd": "Rooはこのファイルの末尾にコンテンツを追加したい",
+		"wantsToReadAndXMore": "Roo はこのファイルと他に {{count}} 個のファイルを読み込もうとしています",
+		"wantsToReadMultiple": "Rooは複数のファイルを読み取ろうとしています",
+		"wantsToApplyBatchChanges": "Rooは複数のファイルに変更を適用したい",
+		"wantsToGenerateImage": "Rooは画像を生成したい",
+		"wantsToGenerateImageOutsideWorkspace": "Rooはワークスペース外で画像を生成したい",
+		"wantsToGenerateImageProtected": "Rooは保護された場所で画像を生成したい",
+		"didGenerateImage": "Rooは画像を生成しました"
 	},
 	"directoryOperations": {
-		"wantsToViewTopLevel": "Rooはこのディレクトリのトップレベルファイルを表示したい:",
-		"didViewTopLevel": "Rooはこのディレクトリのトップレベルファイルを表示しました:",
-		"wantsToViewRecursive": "Rooはこのディレクトリのすべてのファイルを再帰的に表示したい:",
-		"didViewRecursive": "Rooはこのディレクトリのすべてのファイルを再帰的に表示しました:",
-		"wantsToViewDefinitions": "Rooはこのディレクトリで使用されているソースコード定義名を表示したい:",
-		"didViewDefinitions": "Rooはこのディレクトリで使用されているソースコード定義名を表示しました:",
-		"wantsToSearch": "Rooはこのディレクトリで <code>{{regex}}</code> を検索したい:",
-		"didSearch": "Rooはこのディレクトリで <code>{{regex}}</code> を検索しました:",
-		"wantsToSearchOutsideWorkspace": "Rooはこのディレクトリ（ワークスペース外）で <code>{{regex}}</code> を検索したい:",
-		"didSearchOutsideWorkspace": "Rooはこのディレクトリ（ワークスペース外）で <code>{{regex}}</code> を検索しました:",
-		"wantsToViewTopLevelOutsideWorkspace": "Rooはこのディレクトリ（ワークスペース外）のトップレベルファイルを表示したい:",
-		"didViewTopLevelOutsideWorkspace": "Rooはこのディレクトリ（ワークスペース外）のトップレベルファイルを表示しました:",
-		"wantsToViewRecursiveOutsideWorkspace": "Rooはこのディレクトリ（ワークスペース外）のすべてのファイルを再帰的に表示したい:",
-		"didViewRecursiveOutsideWorkspace": "Rooはこのディレクトリ（ワークスペース外）のすべてのファイルを再帰的に表示しました:",
-		"wantsToViewDefinitionsOutsideWorkspace": "Rooはこのディレクトリ（ワークスペース外）で使用されているソースコード定義名を表示したい:",
-		"didViewDefinitionsOutsideWorkspace": "Rooはこのディレクトリ（ワークスペース外）で使用されているソースコード定義名を表示しました:"
+		"wantsToViewTopLevel": "Rooはこのディレクトリのトップレベルファイルを表示したい",
+		"didViewTopLevel": "Rooはこのディレクトリのトップレベルファイルを表示しました",
+		"wantsToViewRecursive": "Rooはこのディレクトリのすべてのファイルを再帰的に表示したい",
+		"didViewRecursive": "Rooはこのディレクトリのすべてのファイルを再帰的に表示しました",
+		"wantsToViewDefinitions": "Rooはこのディレクトリで使用されているソースコード定義名を表示したい",
+		"didViewDefinitions": "Rooはこのディレクトリで使用されているソースコード定義名を表示しました",
+		"wantsToSearch": "Rooはこのディレクトリで <code>{{regex}}</code> を検索したい",
+		"didSearch": "Rooはこのディレクトリで <code>{{regex}}</code> を検索しました",
+		"wantsToSearchOutsideWorkspace": "Rooはこのディレクトリ（ワークスペース外）で <code>{{regex}}</code> を検索したい",
+		"didSearchOutsideWorkspace": "Rooはこのディレクトリ（ワークスペース外）で <code>{{regex}}</code> を検索しました",
+		"wantsToViewTopLevelOutsideWorkspace": "Rooはこのディレクトリ（ワークスペース外）のトップレベルファイルを表示したい",
+		"didViewTopLevelOutsideWorkspace": "Rooはこのディレクトリ（ワークスペース外）のトップレベルファイルを表示しました",
+		"wantsToViewRecursiveOutsideWorkspace": "Rooはこのディレクトリ（ワークスペース外）のすべてのファイルを再帰的に表示したい",
+		"didViewRecursiveOutsideWorkspace": "Rooはこのディレクトリ（ワークスペース外）のすべてのファイルを再帰的に表示しました",
+		"wantsToViewDefinitionsOutsideWorkspace": "Rooはこのディレクトリ（ワークスペース外）で使用されているソースコード定義名を表示したい",
+		"didViewDefinitionsOutsideWorkspace": "Rooはこのディレクトリ（ワークスペース外）で使用されているソースコード定義名を表示しました"
 	},
 	"commandOutput": "コマンド出力",
+	"commandExecution": {
+		"abort": "中止",
+		"running": "実行中",
+		"pid": "PID: {{pid}}",
+		"exitStatus": "ステータス {{exitCode}} で終了しました",
+		"manageCommands": "自動承認されたコマンド",
+		"addToAllowed": "許可リストに追加",
+		"removeFromAllowed": "許可リストから削除",
+		"addToDenied": "拒否リストに追加",
+		"removeFromDenied": "拒否リストから削除",
+		"abortCommand": "コマンドの実行を中止",
+		"expandOutput": "出力を展開",
+		"collapseOutput": "出力を折りたたむ",
+		"expandManagement": "コマンド管理セクションを展開",
+		"collapseManagement": "コマンド管理セクションを折りたたむ"
+	},
 	"response": "応答",
 	"arguments": "引数",
+	"text": {
+		"rooSaid": "Rooの発言"
+	},
+	"feedback": {
+		"youSaid": "あなたの発言"
+	},
 	"mcp": {
-		"wantsToUseTool": "RooはMCPサーバー{{serverName}}でツールを使用したい:",
-		"wantsToAccessResource": "RooはMCPサーバー{{serverName}}のリソースにアクセスしたい:"
+		"wantsToUseTool": "RooはMCPサーバー{{serverName}}でツールを使用したい",
+		"wantsToAccessResource": "RooはMCPサーバー{{serverName}}のリソースにアクセスしたい"
 	},
 	"modes": {
 		"wantsToSwitch": "Rooは<code>{{mode}}</code>モードに切り替えたい",
@@ -205,7 +233,7 @@
 		"didSwitchWithReason": "Rooは次の理由で<code>{{mode}}</code>モードに切り替えました: {{reason}}"
 	},
 	"subtasks": {
-		"wantsToCreate": "Rooは<code>{{mode}}</code>モードで新しいサブタスクを作成したい:",
+		"wantsToCreate": "Rooは<code>{{mode}}</code>モードで新しいサブタスクを作成したい",
 		"wantsToFinish": "Rooはこのサブタスクを終了したい",
 		"newTaskContent": "サブタスク指示",
 		"completionContent": "サブタスク完了",
@@ -214,19 +242,29 @@
 		"completionInstructions": "サブタスク完了！結果を確認し、修正や次のステップを提案できます。問題なければ、親タスクに結果を返すために確認してください。"
 	},
 	"questions": {
-		"hasQuestion": "Rooは質問があります:"
+		"hasQuestion": "Rooは質問があります"
 	},
 	"taskCompleted": "タスク完了",
 	"powershell": {
 		"issues": "Windows PowerShellに問題があるようです。こちらを参照してください"
 	},
 	"autoApprove": {
-		"title": "自動承認:",
+		"tooltipManage": "自動承認設定を管理する",
+		"tooltipStatus": "自動承認が有効です: {{toggles}}",
+		"title": "自動承認",
+		"toggle": "自動承認を切り替える",
+		"all": "すべて",
 		"none": "なし",
-		"description": "自動承認はRoo Codeに許可を求めずに操作を実行する権限を与えます。完全に信頼できる操作のみ有効にしてください。より詳細な設定は<settingsLink>設定</settingsLink>で利用できます。",
+		"description": "許可を求めずにこれらのアクションを実行します。完全に信頼するアクションに対してのみ有効にしてください。",
 		"selectOptionsFirst": "自動承認を有効にするには、以下のオプションを少なくとも1つ選択してください",
-		"toggleAriaLabel": "自動承認の切り替え",
-		"disabledAriaLabel": "自動承認が無効です - 最初にオプションを選択してください"
+		"toggleAriaLabel": "自動承認を切り替える",
+		"disabledAriaLabel": "自動承認が無効です - 最初にオプションを選択してください",
+		"triggerLabelOff": "自動承認オフ",
+		"triggerLabelOffShort": "オフ",
+		"triggerLabel_zero": "0個の自動承認",
+		"triggerLabel_one": "1個の自動承認済み",
+		"triggerLabel_other": "{{count}}個の自動承認済み",
+		"triggerLabelAll": "YOLO"
 	},
 	"reasoning": {
 		"thinking": "考え中",
@@ -245,16 +283,30 @@
 	},
 	"announcement": {
 		"title": "🎉 Roo Code {{version}} リリース",
-		"description": "Roo Code {{version}}は、開発ワークフローを向上させる強力な新機能と重要な改善をもたらします。",
-		"whatsNew": "新機能",
-		"feature1": "<bold>コードベースインデックス機能が実験段階を卒業</bold>: 完全なコードベースインデックス機能が安定し、改善された検索とコンテキスト理解により本番環境での使用が可能になりました。",
-		"feature2": "<bold>新しいTodoリスト機能</bold>: 統合されたTodo管理でタスクを軌道に乗せ、開発目標に整理され集中した状態を維持できます。",
-		"feature3": "<bold>改善されたアーキテクトからコードへの移行</bold>: アーキテクトモードでの計画からコードモードでの実装へのシームレスな引き継ぎ。",
-		"hideButton": "通知を非表示",
-		"detailsDiscussLinks": "詳細は<discordLink>Discord</discordLink>と<redditLink>Reddit</redditLink>でご確認・ディスカッションください 🚀"
+		"stealthModel": {
+			"feature": "<bold>期間限定無料ステルスモデル</bold> - Code Supernova：<bold>1Mトークンコンテキストウィンドウ</bold>にアップグレード！画像入力をサポートする多目的エージェントコーディングモデル、Roo Code Cloud 経由で利用可能。",
+			"note": "(注意：プロンプトと補完はモデル作成者によってログに記録され、モデルの改善に使用されます)",
+			"connectButton": "Roo Code Cloud に接続",
+			"selectModel": "設定で Roo Code Cloud プロバイダーから <code>roo/code-supernova</code> を選択して開始してください。",
+			"goToSettingsButton": "設定に移動"
+		},
+		"release": {
+			"heading": "このバージョンの新機能:",
+			"browserUse": "Browser Use 2.0 は、永続的なセッション、より明確なフィードバック、専用ブラウザパネル、より自然なアクション説明を備えた、チャット内ブラウジング体験をアップグレードします",
+			"cloudPaid": "Roo Code Cloud プロバイダーは、クラウドエージェントと推論の両方に使用できるクレジットを購入できるようになりました"
+		},
+		"cloudAgents": {
+			"heading": "クラウドの新機能:",
+			"specialized": "<bold>Explainer</bold>、<bold>Planner</bold>、<bold>Coder</bold> の 3 つの専門クラウドエージェントを紹介します。ワークフローを強化します。",
+			"description": "エージェントはクラウドで連携して動作し、Web または Slack からトリガーできます。",
+			"tryButton": "クラウドエージェントを試す"
+		},
+		"careers": "また、<careersLink>採用中です！</careersLink>",
+		"socialLinks": "<xLink>X</xLink>、<discordLink>Discord</discordLink>、または<redditLink>r/RooCode</redditLink>でフォローしてください 🚀"
 	},
 	"browser": {
-		"rooWantsToUse": "Rooはブラウザを使用したい:",
+		"session": "ブラウザセッション",
+		"rooWantsToUse": "Rooはブラウザを使用したい",
 		"consoleLogs": "コンソールログ",
 		"noNewLogs": "(新しいログはありません)",
 		"screenshot": "ブラウザのスクリーンショット",
@@ -266,12 +318,14 @@
 		},
 		"sessionStarted": "ブラウザセッション開始",
 		"actions": {
-			"title": "ブラウザアクション: ",
+			"title": "ブラウザ操作: ",
 			"launch": "{{url}} でブラウザを起動",
 			"click": "クリック ({{coordinate}})",
 			"type": "入力 \"{{text}}\"",
+			"press": "{{key}}を押す",
 			"scrollDown": "下にスクロール",
 			"scrollUp": "上にスクロール",
+			"hover": "ホバー ({{coordinate}})",
 			"close": "ブラウザを閉じる"
 		}
 	},
@@ -279,8 +333,6 @@
 		"tooltips": {
 			"expand": "コードブロックを展開",
 			"collapse": "コードブロックを折りたたむ",
-			"enable_wrap": "折り返しを有効化",
-			"disable_wrap": "折り返しを無効化",
 			"copy_code": "コードをコピー"
 		}
 	},
@@ -296,11 +348,16 @@
 			"title": "自動承認リクエスト制限に達しました",
 			"description": "Rooは{{count}}件のAPI自動承認リクエスト制限に達しました。カウントをリセットしてタスクを続行しますか？",
 			"button": "リセットして続行"
+		},
+		"autoApprovedCostLimitReached": {
+			"title": "自動承認コスト制限に達しました",
+			"description": "Rooは自動承認されたコスト制限の${{count}}に達しました。コストをリセットしてタスクを続行しますか？",
+			"button": "リセットして続ける"
 		}
 	},
 	"codebaseSearch": {
-		"wantsToSearch": "Rooはコードベースで <code>{{query}}</code> を検索したい:",
-		"wantsToSearchWithPath": "Rooは <code>{{path}}</code> 内のコードベースで <code>{{query}}</code> を検索したい:",
+		"wantsToSearch": "Rooはコードベースで <code>{{query}}</code> を検索したい",
+		"wantsToSearchWithPath": "Rooは <code>{{path}}</code> 内のコードベースで <code>{{query}}</code> を検索したい",
 		"didSearch_one": "1件の結果が見つかりました",
 		"didSearch_other": "{{count}}件の結果が見つかりました",
 		"resultTooltip": "類似度スコア: {{score}} (クリックしてファイルを開く)"
@@ -324,11 +381,55 @@
 		"ariaLabel": "バージョン {{version}} - クリックしてリリースノートを表示"
 	},
 	"rooCloudCTA": {
-		"title": "Roo Code Cloud が間もなく登場！",
+		"title": "Roo Code Cloud が進化中！",
 		"description": "クラウドでリモートエージェントを実行し、どこからでもタスクにアクセスし、他の人と協力し、その他多くの機能を利用できます。",
-		"joinWaitlist": "早期アクセスを取得するためにウェイトリストに参加してください。"
+		"joinWaitlist": "最新のアップデートを受け取るためにサインアップしてください。"
 	},
 	"editMessage": {
 		"placeholder": "メッセージを編集..."
+	},
+	"command": {
+		"triggerDescription": "{{name}}コマンドをトリガー"
+	},
+	"slashCommands": {
+		"tooltip": "スラッシュコマンドを管理",
+		"title": "スラッシュコマンド",
+		"description": "組み込みスラッシュコマンドを使用するか、よく使用するプロンプトやワークフローに素早くアクセスするためのカスタムスラッシュコマンドを作成します。<DocsLink>ドキュメント</DocsLink>",
+		"manageCommands": "設定でスラッシュコマンドを管理",
+		"builtInCommands": "組み込みコマンド",
+		"globalCommands": "グローバルコマンド",
+		"workspaceCommands": "ワークスペースコマンド",
+		"globalCommand": "グローバルコマンド",
+		"editCommand": "コマンドを編集",
+		"deleteCommand": "コマンドを削除",
+		"newGlobalCommandPlaceholder": "新しいグローバルコマンド...",
+		"newWorkspaceCommandPlaceholder": "新しいワークスペースコマンド...",
+		"deleteDialog": {
+			"title": "コマンドを削除",
+			"description": "\"{{name}}\" コマンドを削除してもよろしいですか？この操作は元に戻せません。",
+			"cancel": "キャンセル",
+			"confirm": "削除"
+		}
+	},
+	"contextMenu": {
+		"noResults": "結果なし",
+		"problems": "問題",
+		"terminal": "ターミナル",
+		"url": "URLを貼り付けてコンテンツを取得"
+	},
+	"queuedMessages": {
+		"title": "キューメッセージ",
+		"clickToEdit": "クリックしてメッセージを編集"
+	},
+	"slashCommand": {
+		"wantsToRun": "Rooはスラッシュコマンドを実行したい",
+		"didRun": "Rooはスラッシュコマンドを実行しました"
+	},
+	"todo": {
+		"partial": "{{total}}件中{{completed}}件のTo-Doが完了",
+		"complete": "{{total}}件のTo-Doが完了",
+		"updated": "To-Doリストを更新しました",
+		"completed": "完了",
+		"started": "開始"
 	}
 }

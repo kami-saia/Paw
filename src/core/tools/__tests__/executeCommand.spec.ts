@@ -4,7 +4,7 @@
 import * as path from "path"
 import * as fs from "fs/promises"
 
-import { ExecuteCommandOptions } from "../executeCommandTool"
+import { ExecuteCommandOptions } from "../ExecuteCommandTool"
 import { TerminalRegistry } from "../../../integrations/terminal/TerminalRegistry"
 import { Terminal } from "../../../integrations/terminal/Terminal"
 import { ExecaTerminal } from "../../../integrations/terminal/ExecaTerminal"
@@ -21,7 +21,7 @@ vitest.mock("../../../integrations/terminal/Terminal")
 vitest.mock("../../../integrations/terminal/ExecaTerminal")
 
 // Import the actual executeCommand function (not mocked)
-import { executeCommand } from "../executeCommandTool"
+import { executeCommandInTerminal } from "../ExecuteCommandTool"
 
 // Tests for the executeCommand function
 describe("executeCommand", () => {
@@ -104,7 +104,7 @@ describe("executeCommand", () => {
 			}
 
 			// Execute
-			const [rejected, result] = await executeCommand(mockTask, options)
+			const [rejected, result] = await executeCommandInTerminal(mockTask, options)
 
 			// Verify
 			expect(rejected).toBe(false)
@@ -145,7 +145,7 @@ describe("executeCommand", () => {
 			}
 
 			// Execute
-			const [rejected, result] = await executeCommand(mockTask, options)
+			const [rejected, result] = await executeCommandInTerminal(mockTask, options)
 
 			// Verify
 			expect(rejected).toBe(false)
@@ -178,7 +178,7 @@ describe("executeCommand", () => {
 			}
 
 			// Execute
-			const [rejected, result] = await executeCommand(mockTask, options)
+			const [rejected, result] = await executeCommandInTerminal(mockTask, options)
 
 			// Verify
 			expect(rejected).toBe(false)
@@ -209,16 +209,11 @@ describe("executeCommand", () => {
 			}
 
 			// Execute
-			const [rejected, result] = await executeCommand(mockTask, options)
+			const [rejected, result] = await executeCommandInTerminal(mockTask, options)
 
 			// Verify
 			expect(rejected).toBe(false)
-			expect(TerminalRegistry.getOrCreateTerminal).toHaveBeenCalledWith(
-				customCwd,
-				true, // customCwd provided
-				mockTask.taskId,
-				"vscode",
-			)
+			expect(TerminalRegistry.getOrCreateTerminal).toHaveBeenCalledWith(customCwd, mockTask.taskId, "vscode")
 			expect(result).toContain(`within working directory '${customCwd}'`)
 		})
 
@@ -244,16 +239,11 @@ describe("executeCommand", () => {
 			}
 
 			// Execute
-			const [rejected, result] = await executeCommand(mockTask, options)
+			const [rejected, result] = await executeCommandInTerminal(mockTask, options)
 
 			// Verify
 			expect(rejected).toBe(false)
-			expect(TerminalRegistry.getOrCreateTerminal).toHaveBeenCalledWith(
-				resolvedCwd,
-				true, // customCwd provided
-				mockTask.taskId,
-				"vscode",
-			)
+			expect(TerminalRegistry.getOrCreateTerminal).toHaveBeenCalledWith(resolvedCwd, mockTask.taskId, "vscode")
 			expect(result).toContain(`within working directory '${resolvedCwd.toPosix()}'`)
 		})
 
@@ -272,7 +262,7 @@ describe("executeCommand", () => {
 			}
 
 			// Execute
-			const [rejected, result] = await executeCommand(mockTask, options)
+			const [rejected, result] = await executeCommandInTerminal(mockTask, options)
 
 			// Verify
 			expect(rejected).toBe(false)
@@ -299,15 +289,10 @@ describe("executeCommand", () => {
 			}
 
 			// Execute
-			await executeCommand(mockTask, options)
+			await executeCommandInTerminal(mockTask, options)
 
 			// Verify
-			expect(TerminalRegistry.getOrCreateTerminal).toHaveBeenCalledWith(
-				mockTask.cwd,
-				false, // no customCwd
-				mockTask.taskId,
-				"vscode",
-			)
+			expect(TerminalRegistry.getOrCreateTerminal).toHaveBeenCalledWith(mockTask.cwd, mockTask.taskId, "vscode")
 		})
 
 		it("should use execa provider when shell integration is disabled", async () => {
@@ -327,15 +312,10 @@ describe("executeCommand", () => {
 			}
 
 			// Execute
-			await executeCommand(mockTask, options)
+			await executeCommandInTerminal(mockTask, options)
 
 			// Verify
-			expect(TerminalRegistry.getOrCreateTerminal).toHaveBeenCalledWith(
-				mockTask.cwd,
-				false, // no customCwd
-				mockTask.taskId,
-				"execa",
-			)
+			expect(TerminalRegistry.getOrCreateTerminal).toHaveBeenCalledWith(mockTask.cwd, mockTask.taskId, "execa")
 		})
 	})
 
@@ -358,7 +338,7 @@ describe("executeCommand", () => {
 			}
 
 			// Execute
-			const [rejected, result] = await executeCommand(mockTask, options)
+			const [rejected, result] = await executeCommandInTerminal(mockTask, options)
 
 			// Verify
 			expect(rejected).toBe(false)
@@ -384,7 +364,7 @@ describe("executeCommand", () => {
 			}
 
 			// Execute
-			const [rejected, result] = await executeCommand(mockTask, options)
+			const [rejected, result] = await executeCommandInTerminal(mockTask, options)
 
 			// Verify
 			expect(rejected).toBe(false)
@@ -418,7 +398,7 @@ describe("executeCommand", () => {
 			}
 
 			// Execute
-			const [rejected, result] = await executeCommand(mockTask, options)
+			const [rejected, result] = await executeCommandInTerminal(mockTask, options)
 
 			// Verify
 			expect(rejected).toBe(false)
@@ -460,7 +440,7 @@ describe("executeCommand", () => {
 			}
 
 			// Execute
-			const [rejected, result] = await executeCommand(mockTask, options)
+			const [rejected, result] = await executeCommandInTerminal(mockTask, options)
 
 			// Verify the result uses the updated working directory
 			expect(rejected).toBe(false)

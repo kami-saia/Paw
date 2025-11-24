@@ -2,12 +2,15 @@
 	"greeting": "Witamy w Roo Code",
 	"task": {
 		"title": "Zadanie",
+		"expand": "Rozwiń zadanie",
+		"collapse": "Zwiń zadanie",
 		"seeMore": "Zobacz więcej",
 		"seeLess": "Zobacz mniej",
-		"tokens": "Tokeny:",
-		"cache": "Pamięć podręczna:",
-		"apiCost": "Koszt API:",
-		"contextWindow": "Okno kontekstu:",
+		"tokens": "Tokeny",
+		"cache": "Pamięć podręczna",
+		"apiCost": "Koszt API",
+		"size": "Rozmiar",
+		"contextWindow": "Okno kontekstu",
 		"closeAndStart": "Zamknij zadanie i rozpocznij nowe",
 		"export": "Eksportuj historię zadań",
 		"delete": "Usuń zadanie (Shift + Kliknięcie, aby pominąć potwierdzenie)",
@@ -21,7 +24,9 @@
 		"connectToCloudDescription": "Zaloguj się do Roo Code Cloud, aby udostępniać zadania",
 		"sharingDisabledByOrganization": "Udostępnianie wyłączone przez organizację",
 		"shareSuccessOrganization": "Link organizacji skopiowany do schowka",
-		"shareSuccessPublic": "Link publiczny skopiowany do schowka"
+		"shareSuccessPublic": "Link publiczny skopiowany do schowka",
+		"openInCloud": "Otwórz zadanie w Roo Code Cloud",
+		"openInCloudIntro": "Kontynuuj monitorowanie lub interakcję z Roo z dowolnego miejsca. Zeskanuj, kliknij lub skopiuj, aby otworzyć."
 	},
 	"unpin": "Odepnij",
 	"pin": "Przypnij",
@@ -56,7 +61,7 @@
 		"tooltip": "Zatwierdź tę akcję"
 	},
 	"runCommand": {
-		"title": "Uruchom polecenie",
+		"title": "Polecenie",
 		"tooltip": "Wykonaj to polecenie"
 	},
 	"proceedWhileRunning": {
@@ -80,24 +85,17 @@
 		"tooltip": "Anuluj bieżącą operację"
 	},
 	"scrollToBottom": "Przewiń do dołu czatu",
-	"about": "Generuj, refaktoryzuj i debuguj kod z pomocą sztucznej inteligencji. Sprawdź naszą <DocsLink>dokumentację</DocsLink>, aby dowiedzieć się więcej.",
-	"onboarding": "<strong>Twoja lista zadań w tym obszarze roboczym jest pusta.</strong> Zacznij od wpisania zadania poniżej. Nie wiesz, jak zacząć? Przeczytaj więcej o tym, co Roo może dla Ciebie zrobić w <DocsLink>dokumentacji</DocsLink>.",
+	"about": "Roo Code to cały zespół deweloperów AI w Twoim edytorze.",
+	"docs": "Sprawdź naszą <DocsLink>dokumentację</DocsLink>, aby dowiedzieć się więcej.",
+	"onboarding": "Twoja lista zadań w tym obszarze roboczym jest pusta.",
 	"rooTips": {
-		"boomerangTasks": {
-			"title": "Orkiestracja Zadań",
-			"description": "Podziel zadania na mniejsze, łatwiejsze do zarządzania części."
-		},
-		"stickyModels": {
-			"title": "Tryby trwałe",
-			"description": "Każdy tryb zapamiętuje ostatnio używany model"
-		},
-		"tools": {
-			"title": "Narzędzia",
-			"description": "Pozwól sztucznej inteligencji rozwiązywać problemy, przeglądając sieć, uruchamiając polecenia i nie tylko."
-		},
 		"customizableModes": {
 			"title": "Konfigurowalne tryby",
-			"description": "Wyspecjalizowane persona z własnymi zachowaniami i przypisanymi modelami"
+			"description": "Wyspecjalizowane persony, które trzymają się zadania i dostarczają."
+		},
+		"modelAgnostic": {
+			"title": "Przynieś własny model",
+			"description": "Użyj własnego klucza dostawcy lub nawet uruchom lokalne wnioskowanie — bez narzutów, bez blokad, bez ograniczeń"
 		}
 	},
 	"selectMode": "Wybierz tryb interakcji",
@@ -108,7 +106,7 @@
 	"stopTts": "Zatrzymaj syntezę mowy",
 	"typeMessage": "Wpisz wiadomość...",
 	"typeTask": "Wpisz swoje zadanie tutaj...",
-	"addContext": "@ aby dodać kontekst, / aby zmienić tryb",
+	"addContext": "@ aby dodać kontekst, / dla poleceń",
 	"dragFiles": "przytrzymaj shift, aby przeciągnąć pliki",
 	"dragFilesImages": "przytrzymaj shift, aby przeciągnąć pliki/obrazy",
 	"enhancePromptDescription": "Przycisk 'Ulepsz podpowiedź' pomaga ulepszyć Twoją prośbę, dostarczając dodatkowy kontekst, wyjaśnienia lub przeformułowania. Spróbuj wpisać prośbę tutaj i kliknij przycisk ponownie, aby zobaczyć, jak to działa.",
@@ -116,9 +114,11 @@
 		"title": "Tryby",
 		"marketplace": "Marketplace Trybów",
 		"settings": "Ustawienia Trybów",
-		"description": "Wyspecjalizowane persony, które dostosowują zachowanie Roo."
+		"description": "Wyspecjalizowane persony, które dostosowują zachowanie Roo.",
+		"searchPlaceholder": "Szukaj trybów...",
+		"noResults": "Nie znaleziono wyników"
 	},
-	"errorReadingFile": "Błąd odczytu pliku:",
+	"errorReadingFile": "Błąd odczytu pliku",
 	"noValidImages": "Nie przetworzono żadnych prawidłowych obrazów",
 	"separator": "Separator",
 	"edit": "Edytuj...",
@@ -137,11 +137,13 @@
 		"streamingFailed": "Strumieniowanie API nie powiodło się"
 	},
 	"checkpoint": {
-		"initial": "Początkowy punkt kontrolny",
 		"regular": "Punkt kontrolny",
 		"initializingWarning": "Trwa inicjalizacja punktu kontrolnego... Jeśli to trwa zbyt długo, możesz wyłączyć punkty kontrolne w <settingsLink>ustawieniach</settingsLink> i uruchomić zadanie ponownie.",
 		"menu": {
 			"viewDiff": "Zobacz różnice",
+			"more": "Więcej opcji",
+			"viewDiffFromInit": "Zobacz wszystkie zmiany",
+			"viewDiffWithCurrent": "Zobacz zmiany od tego punktu kontrolnego",
 			"restore": "Przywróć punkt kontrolny",
 			"restoreFiles": "Przywróć pliki",
 			"restoreFilesDescription": "Przywraca pliki Twojego projektu do zrzutu wykonanego w tym punkcie.",
@@ -157,46 +159,72 @@
 		"wantsToFetch": "Roo chce pobrać szczegółowe instrukcje, aby pomóc w bieżącym zadaniu"
 	},
 	"fileOperations": {
-		"wantsToRead": "Roo chce przeczytać ten plik:",
-		"wantsToReadOutsideWorkspace": "Roo chce przeczytać ten plik poza obszarem roboczym:",
-		"didRead": "Roo przeczytał ten plik:",
-		"wantsToEdit": "Roo chce edytować ten plik:",
-		"wantsToEditOutsideWorkspace": "Roo chce edytować ten plik poza obszarem roboczym:",
-		"wantsToEditProtected": "Roo chce edytować chroniony plik konfiguracyjny:",
-		"wantsToCreate": "Roo chce utworzyć nowy plik:",
-		"wantsToSearchReplace": "Roo chce wykonać wyszukiwanie i zamianę w tym pliku:",
-		"didSearchReplace": "Roo wykonał wyszukiwanie i zamianę w tym pliku:",
-		"wantsToInsert": "Roo chce wstawić zawartość do tego pliku:",
-		"wantsToInsertWithLineNumber": "Roo chce wstawić zawartość do tego pliku w linii {{lineNumber}}:",
-		"wantsToInsertAtEnd": "Roo chce dodać zawartość na końcu tego pliku:",
-		"wantsToReadAndXMore": "Roo chce przeczytać ten plik i {{count}} więcej:",
-		"wantsToReadMultiple": "Roo chce odczytać wiele plików:",
-		"wantsToApplyBatchChanges": "Roo chce zastosować zmiany do wielu plików:"
+		"wantsToRead": "Roo chce przeczytać ten plik",
+		"wantsToReadOutsideWorkspace": "Roo chce przeczytać ten plik poza obszarem roboczym",
+		"didRead": "Roo przeczytał ten plik",
+		"wantsToEdit": "Roo chce edytować ten plik",
+		"wantsToEditOutsideWorkspace": "Roo chce edytować ten plik poza obszarem roboczym",
+		"wantsToEditProtected": "Roo chce edytować chroniony plik konfiguracyjny",
+		"wantsToCreate": "Roo chce utworzyć nowy plik",
+		"wantsToSearchReplace": "Roo chce wykonać wyszukiwanie i zamianę w tym pliku",
+		"didSearchReplace": "Roo wykonał wyszukiwanie i zamianę w tym pliku",
+		"wantsToInsert": "Roo chce wstawić zawartość do tego pliku",
+		"wantsToInsertWithLineNumber": "Roo chce wstawić zawartość do tego pliku w linii {{lineNumber}}",
+		"wantsToInsertAtEnd": "Roo chce dodać zawartość na końcu tego pliku",
+		"wantsToReadAndXMore": "Roo chce przeczytać ten plik i {{count}} więcej",
+		"wantsToReadMultiple": "Roo chce odczytać wiele plików",
+		"wantsToApplyBatchChanges": "Roo chce zastosować zmiany do wielu plików",
+		"wantsToGenerateImage": "Roo chce wygenerować obraz",
+		"wantsToGenerateImageOutsideWorkspace": "Roo chce wygenerować obraz poza obszarem roboczym",
+		"wantsToGenerateImageProtected": "Roo chce wygenerować obraz w chronionym miejscu",
+		"didGenerateImage": "Roo wygenerował obraz"
 	},
 	"directoryOperations": {
-		"wantsToViewTopLevel": "Roo chce zobaczyć pliki najwyższego poziomu w tym katalogu:",
-		"didViewTopLevel": "Roo zobaczył pliki najwyższego poziomu w tym katalogu:",
-		"wantsToViewRecursive": "Roo chce rekurencyjnie zobaczyć wszystkie pliki w tym katalogu:",
-		"didViewRecursive": "Roo rekurencyjnie zobaczył wszystkie pliki w tym katalogu:",
-		"wantsToViewDefinitions": "Roo chce zobaczyć nazwy definicji kodu źródłowego używane w tym katalogu:",
-		"didViewDefinitions": "Roo zobaczył nazwy definicji kodu źródłowego używane w tym katalogu:",
-		"wantsToSearch": "Roo chce przeszukać ten katalog w poszukiwaniu <code>{{regex}}</code>:",
-		"didSearch": "Roo przeszukał ten katalog w poszukiwaniu <code>{{regex}}</code>:",
-		"wantsToSearchOutsideWorkspace": "Roo chce przeszukać ten katalog (poza obszarem roboczym) w poszukiwaniu <code>{{regex}}</code>:",
-		"didSearchOutsideWorkspace": "Roo przeszukał ten katalog (poza obszarem roboczym) w poszukiwaniu <code>{{regex}}</code>:",
-		"wantsToViewTopLevelOutsideWorkspace": "Roo chce zobaczyć pliki najwyższego poziomu w tym katalogu (poza obszarem roboczym):",
-		"didViewTopLevelOutsideWorkspace": "Roo zobaczył pliki najwyższego poziomu w tym katalogu (poza obszarem roboczym):",
-		"wantsToViewRecursiveOutsideWorkspace": "Roo chce rekurencyjnie zobaczyć wszystkie pliki w tym katalogu (poza obszarem roboczym):",
-		"didViewRecursiveOutsideWorkspace": "Roo rekurencyjnie zobaczył wszystkie pliki w tym katalogu (poza obszarem roboczym):",
-		"wantsToViewDefinitionsOutsideWorkspace": "Roo chce zobaczyć nazwy definicji kodu źródłowego używane w tym katalogu (poza obszarem roboczym):",
-		"didViewDefinitionsOutsideWorkspace": "Roo zobaczył nazwy definicji kodu źródłowego używane w tym katalogu (poza obszarem roboczym):"
+		"wantsToViewTopLevel": "Roo chce zobaczyć pliki najwyższego poziomu w tym katalogu",
+		"didViewTopLevel": "Roo zobaczył pliki najwyższego poziomu w tym katalogu",
+		"wantsToViewRecursive": "Roo chce rekurencyjnie zobaczyć wszystkie pliki w tym katalogu",
+		"didViewRecursive": "Roo rekurencyjnie zobaczył wszystkie pliki w tym katalogu",
+		"wantsToViewDefinitions": "Roo chce zobaczyć nazwy definicji kodu źródłowego używane w tym katalogu",
+		"didViewDefinitions": "Roo zobaczył nazwy definicji kodu źródłowego używane w tym katalogu",
+		"wantsToSearch": "Roo chce przeszukać ten katalog w poszukiwaniu <code>{{regex}}</code>",
+		"didSearch": "Roo przeszukał ten katalog w poszukiwaniu <code>{{regex}}</code>",
+		"wantsToSearchOutsideWorkspace": "Roo chce przeszukać ten katalog (poza obszarem roboczym) w poszukiwaniu <code>{{regex}}</code>",
+		"didSearchOutsideWorkspace": "Roo przeszukał ten katalog (poza obszarem roboczym) w poszukiwaniu <code>{{regex}}</code>",
+		"wantsToViewTopLevelOutsideWorkspace": "Roo chce zobaczyć pliki najwyższego poziomu w tym katalogu (poza obszarem roboczym)",
+		"didViewTopLevelOutsideWorkspace": "Roo zobaczył pliki najwyższego poziomu w tym katalogu (poza obszarem roboczym)",
+		"wantsToViewRecursiveOutsideWorkspace": "Roo chce rekurencyjnie zobaczyć wszystkie pliki w tym katalogu (poza obszarem roboczym)",
+		"didViewRecursiveOutsideWorkspace": "Roo rekurencyjnie zobaczył wszystkie pliki w tym katalogu (poza obszarem roboczym)",
+		"wantsToViewDefinitionsOutsideWorkspace": "Roo chce zobaczyć nazwy definicji kodu źródłowego używane w tym katalogu (poza obszarem roboczym)",
+		"didViewDefinitionsOutsideWorkspace": "Roo zobaczył nazwy definicji kodu źródłowego używane w tym katalogu (poza obszarem roboczym)"
 	},
 	"commandOutput": "Wyjście polecenia",
+	"commandExecution": {
+		"running": "Wykonywanie",
+		"abort": "Przerwij",
+		"pid": "PID: {{pid}}",
+		"exitStatus": "Zakończono ze statusem {{exitCode}}",
+		"manageCommands": "Polecenia zatwierdzone automatycznie",
+		"addToAllowed": "Dodaj do listy dozwolonych",
+		"removeFromAllowed": "Usuń z listy dozwolonych",
+		"addToDenied": "Dodaj do listy odrzuconych",
+		"removeFromDenied": "Usuń z listy odrzuconych",
+		"abortCommand": "Przerwij wykonywanie polecenia",
+		"expandOutput": "Rozwiń wyjście",
+		"collapseOutput": "Zwiń wyjście",
+		"expandManagement": "Rozwiń sekcję zarządzania poleceniami",
+		"collapseManagement": "Zwiń sekcję zarządzania poleceniami"
+	},
 	"response": "Odpowiedź",
 	"arguments": "Argumenty",
+	"text": {
+		"rooSaid": "Roo powiedział"
+	},
+	"feedback": {
+		"youSaid": "Powiedziałeś"
+	},
 	"mcp": {
-		"wantsToUseTool": "Roo chce użyć narzędzia na serwerze MCP {{serverName}}:",
-		"wantsToAccessResource": "Roo chce uzyskać dostęp do zasobu na serwerze MCP {{serverName}}:"
+		"wantsToUseTool": "Roo chce użyć narzędzia na serwerze MCP {{serverName}}",
+		"wantsToAccessResource": "Roo chce uzyskać dostęp do zasobu na serwerze MCP {{serverName}}"
 	},
 	"modes": {
 		"wantsToSwitch": "Roo chce przełączyć się na tryb <code>{{mode}}</code>",
@@ -205,7 +233,7 @@
 		"didSwitchWithReason": "Roo przełączył się na tryb <code>{{mode}}</code> ponieważ: {{reason}}"
 	},
 	"subtasks": {
-		"wantsToCreate": "Roo chce utworzyć nowe podzadanie w trybie <code>{{mode}}</code>:",
+		"wantsToCreate": "Roo chce utworzyć nowe podzadanie w trybie <code>{{mode}}</code>",
 		"wantsToFinish": "Roo chce zakończyć to podzadanie",
 		"newTaskContent": "Instrukcje podzadania",
 		"completionContent": "Podzadanie zakończone",
@@ -214,19 +242,29 @@
 		"completionInstructions": "Podzadanie zakończone! Możesz przejrzeć wyniki i zasugerować poprawki lub następne kroki. Jeśli wszystko wygląda dobrze, potwierdź, aby zwrócić wynik do zadania nadrzędnego."
 	},
 	"questions": {
-		"hasQuestion": "Roo ma pytanie:"
+		"hasQuestion": "Roo ma pytanie"
 	},
 	"taskCompleted": "Zadanie zakończone",
 	"powershell": {
 		"issues": "Wygląda na to, że masz problemy z Windows PowerShell, proszę zapoznaj się z tym"
 	},
 	"autoApprove": {
-		"title": "Automatyczne zatwierdzanie:",
-		"none": "Brak",
-		"description": "Automatyczne zatwierdzanie pozwala Roo Code wykonywać działania bez pytania o pozwolenie. Włącz tylko dla działań, którym w pełni ufasz. Bardziej szczegółowa konfiguracja dostępna w <settingsLink>Ustawieniach</settingsLink>.",
+		"tooltipManage": "Zarządzaj ustawieniami automatycznego zatwierdzania",
+		"tooltipStatus": "Automatyczne zatwierdzanie włączone dla: {{toggles}}",
+		"title": "Automatyczne zatwierdzanie",
+		"toggle": "Przełącz automatyczne zatwierdzanie",
+		"all": "Wszystkie",
+		"none": "Żadne",
+		"description": "Wykonuj te działania bez pytania o zgodę. Włącz tę opcję tylko dla działań, którym w pełni ufasz.",
 		"selectOptionsFirst": "Wybierz co najmniej jedną opcję poniżej, aby włączyć automatyczne zatwierdzanie",
 		"toggleAriaLabel": "Przełącz automatyczne zatwierdzanie",
-		"disabledAriaLabel": "Automatyczne zatwierdzanie wyłączone - najpierw wybierz opcje"
+		"disabledAriaLabel": "Automatyczne zatwierdzanie wyłączone - najpierw wybierz opcje",
+		"triggerLabelOff": "Automatyczne zatwierdzanie wyłączone",
+		"triggerLabelOffShort": "Wyłączone",
+		"triggerLabel_zero": "0 automatycznie zatwierdzone",
+		"triggerLabel_one": "1 automatycznie zatwierdzony",
+		"triggerLabel_other": "{{count}} automatycznie zatwierdzonych",
+		"triggerLabelAll": "YOLO"
 	},
 	"reasoning": {
 		"thinking": "Myślenie",
@@ -245,16 +283,30 @@
 	},
 	"announcement": {
 		"title": "🎉 Roo Code {{version}} wydany",
-		"description": "Roo Code {{version}} wprowadza potężne nowe funkcje i znaczące ulepszenia, aby ulepszyć Twój przepływ pracy programistycznej.",
-		"whatsNew": "Co nowego",
-		"feature1": "<bold>Indeksowanie bazy kodu ukończone z fazy eksperymentalnej</bold>: Pełne indeksowanie bazy kodu jest teraz stabilne i gotowe do użytku produkcyjnego z ulepszonymi funkcjami wyszukiwania i rozumienia kontekstu.",
-		"feature2": "<bold>Nowa funkcja listy zadań</bold>: Utrzymuj swoje zadania na właściwym torze dzięki zintegrowanemu zarządzaniu zadaniami, które pomaga ci pozostać zorganizowanym i skupionym na celach rozwojowych.",
-		"feature3": "<bold>Ulepszone przejścia z Architekta do Kodu</bold>: Płynne transfery z planowania w trybie Architekta do implementacji w trybie Kodu.",
-		"hideButton": "Ukryj ogłoszenie",
-		"detailsDiscussLinks": "Uzyskaj więcej szczegółów i dołącz do dyskusji na <discordLink>Discord</discordLink> i <redditLink>Reddit</redditLink> 🚀"
+		"stealthModel": {
+			"feature": "<bold>Darmowy model stealth na ograniczony czas</bold> - Code Supernova: Teraz ulepszony z <bold>oknem kontekstu 1M tokenów</bold>! Wszechstronny model kodowania agentowego, który obsługuje wprowadzanie obrazów, dostępny przez Roo Code Cloud.",
+			"note": "(Uwaga: prompty i uzupełnienia są rejestrowane przez twórcę modelu i używane do jego ulepszania)",
+			"connectButton": "Połącz z Roo Code Cloud",
+			"selectModel": "Wybierz <code>roo/code-supernova</code> od dostawcy Roo Code Cloud w Ustawieniach, aby rozpocząć.",
+			"goToSettingsButton": "Przejdź do Ustawień"
+		},
+		"release": {
+			"heading": "Nowości:",
+			"browserUse": "Browser Use 2.0 ulepsza przeglądanie w czacie dzięki trwałym sesjom, jaśniejszym informacjom zwrotnym, dedykowanemu panelowi przeglądarki i bardziej naturalnemu opisowi działań",
+			"cloudPaid": "Dostawca Roo Code Cloud oferuje teraz płatne modele: kup kredyty i używaj ich zarówno dla agentów chmurowych, jak i wnioskowania"
+		},
+		"cloudAgents": {
+			"heading": "Nowości w chmurze:",
+			"specialized": "Przedstawiamy <bold>Explainer</bold>, <bold>Planner</bold> i <bold>Coder</bold> - trzech wyspecjalizowanych agentów chmurowych, aby ulepszyć Twoje przepływy pracy.",
+			"description": "Agenci pracują razem w chmurze i mogą być uruchamiani z sieci lub przez Slack.",
+			"tryButton": "Wypróbuj agentów chmurowych"
+		},
+		"careers": "Dodatkowo, <careersLink>zatrudniamy!</careersLink>",
+		"socialLinks": "Dołącz do nas na <xLink>X</xLink>, <discordLink>Discord</discordLink>, lub <redditLink>r/RooCode</redditLink> 🚀"
 	},
 	"browser": {
-		"rooWantsToUse": "Roo chce użyć przeglądarki:",
+		"session": "Sesja przeglądarki",
+		"rooWantsToUse": "Roo chce użyć przeglądarki",
 		"consoleLogs": "Logi konsoli",
 		"noNewLogs": "(Brak nowych logów)",
 		"screenshot": "Zrzut ekranu przeglądarki",
@@ -270,8 +322,10 @@
 			"launch": "Uruchom przeglądarkę na {{url}}",
 			"click": "Kliknij ({{coordinate}})",
 			"type": "Wpisz \"{{text}}\"",
+			"press": "Naciśnij {{key}}",
 			"scrollDown": "Przewiń w dół",
 			"scrollUp": "Przewiń w górę",
+			"hover": "Najedź ({{coordinate}})",
 			"close": "Zamknij przeglądarkę"
 		}
 	},
@@ -279,8 +333,6 @@
 		"tooltips": {
 			"expand": "Rozwiń blok kodu",
 			"collapse": "Zwiń blok kodu",
-			"enable_wrap": "Włącz zawijanie wierszy",
-			"disable_wrap": "Wyłącz zawijanie wierszy",
 			"copy_code": "Kopiuj kod"
 		}
 	},
@@ -296,11 +348,16 @@
 			"title": "Osiągnięto limit automatycznie zatwierdzonych żądań",
 			"description": "Roo osiągnął automatycznie zatwierdzony limit {{count}} żądania/żądań API. Czy chcesz zresetować licznik i kontynuować zadanie?",
 			"button": "Zresetuj i kontynuuj"
+		},
+		"autoApprovedCostLimitReached": {
+			"button": "Zresetuj i Kontynuuj",
+			"title": "Osiągnięto limit kosztów z automatycznym zatwierdzaniem",
+			"description": "Roo osiągnął automatycznie zatwierdzony limit kosztów wynoszący ${{count}}. Czy chcesz zresetować koszt i kontynuować zadanie?"
 		}
 	},
 	"codebaseSearch": {
-		"wantsToSearch": "Roo chce przeszukać bazę kodu w poszukiwaniu <code>{{query}}</code>:",
-		"wantsToSearchWithPath": "Roo chce przeszukać bazę kodu w poszukiwaniu <code>{{query}}</code> w <code>{{path}}</code>:",
+		"wantsToSearch": "Roo chce przeszukać bazę kodu w poszukiwaniu <code>{{query}}</code>",
+		"wantsToSearchWithPath": "Roo chce przeszukać bazę kodu w poszukiwaniu <code>{{query}}</code> w <code>{{path}}</code>",
 		"didSearch_one": "Znaleziono 1 wynik",
 		"didSearch_other": "Znaleziono {{count}} wyników",
 		"resultTooltip": "Wynik podobieństwa: {{score}} (kliknij, aby otworzyć plik)"
@@ -324,11 +381,55 @@
 		"ariaLabel": "Wersja {{version}} - Kliknij, aby wyświetlić informacje o wydaniu"
 	},
 	"rooCloudCTA": {
-		"title": "Roo Code Cloud już wkrótce!",
+		"title": "Roo Code Cloud się rozwija!",
 		"description": "Uruchamiaj zdalne agenty w chmurze, uzyskuj dostęp do swoich zadań z dowolnego miejsca, współpracuj z innymi i wiele więcej.",
-		"joinWaitlist": "Dołącz do listy oczekujących, aby uzyskać wczesny dostęp."
+		"joinWaitlist": "Zarejestruj się, aby otrzymywać najnowsze aktualizacje."
 	},
 	"editMessage": {
 		"placeholder": "Edytuj swoją wiadomość..."
+	},
+	"command": {
+		"triggerDescription": "Uruchom polecenie {{name}}"
+	},
+	"slashCommands": {
+		"tooltip": "Zarządzaj poleceniami slash",
+		"title": "Polecenia Slash",
+		"description": "Używaj wbudowanych poleceń slash lub twórz niestandardowe dla szybkiego dostępu do często używanych promptów i przepływów pracy. <DocsLink>Dokumentacja</DocsLink>",
+		"manageCommands": "Zarządzaj poleceniami slash w ustawieniach",
+		"builtInCommands": "Polecenia Wbudowane",
+		"globalCommands": "Polecenia Globalne",
+		"workspaceCommands": "Polecenia Obszaru Roboczego",
+		"globalCommand": "Polecenie globalne",
+		"editCommand": "Edytuj polecenie",
+		"deleteCommand": "Usuń polecenie",
+		"newGlobalCommandPlaceholder": "Nowe polecenie globalne...",
+		"newWorkspaceCommandPlaceholder": "Nowe polecenie obszaru roboczego...",
+		"deleteDialog": {
+			"title": "Usuń Polecenie",
+			"description": "Czy na pewno chcesz usunąć polecenie \"{{name}}\"? Tej akcji nie można cofnąć.",
+			"cancel": "Anuluj",
+			"confirm": "Usuń"
+		}
+	},
+	"contextMenu": {
+		"noResults": "Brak wyników",
+		"problems": "Problemy",
+		"terminal": "Terminal",
+		"url": "Wklej adres URL, aby pobrać zawartość"
+	},
+	"queuedMessages": {
+		"title": "Wiadomości w kolejce",
+		"clickToEdit": "Kliknij, aby edytować wiadomość"
+	},
+	"slashCommand": {
+		"wantsToRun": "Roo chce uruchomić komendę slash",
+		"didRun": "Roo uruchomił komendę slash"
+	},
+	"todo": {
+		"partial": "Ukończono {{completed}} z {{total}} zadań do wykonania",
+		"complete": "Ukończono {{total}} zadań do wykonania",
+		"updated": "Zaktualizowano listę zadań do wykonania",
+		"completed": "Ukończono",
+		"started": "Rozpoczęto"
 	}
 }

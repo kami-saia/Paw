@@ -21,10 +21,14 @@ vitest.mock("../../../../i18n", () => ({
 		return key // Just return the key for other cases
 	},
 }))
-vitest.mock("path", () => ({
-	...vitest.importActual("path"),
-	sep: "/",
-}))
+vitest.mock("path", async () => {
+	const actual = await vitest.importActual("path")
+	return {
+		...actual,
+		sep: "/",
+		posix: actual.posix,
+	}
+})
 
 const mockQdrantClientInstance = {
 	getCollection: vitest.fn(),
@@ -528,18 +532,28 @@ describe("QdrantVectorStore", () => {
 				vectors: {
 					size: mockVectorSize,
 					distance: "Cosine", // Assuming 'Cosine' is the DISTANCE_METRIC
+					on_disk: true,
+				},
+				hnsw_config: {
+					m: 64,
+					ef_construct: 512,
+					on_disk: true,
 				},
 			})
 			expect(mockQdrantClientInstance.deleteCollection).not.toHaveBeenCalled()
 
-			// Verify payload index creation
+			// Verify payload index creation - 'type' field first, then pathSegments
+			expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledWith(expectedCollectionName, {
+				field_name: "type",
+				field_schema: "keyword",
+			})
 			for (let i = 0; i <= 4; i++) {
 				expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledWith(expectedCollectionName, {
 					field_name: `pathSegments.${i}`,
 					field_schema: "keyword",
 				})
 			}
-			expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledTimes(5)
+			expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledTimes(6)
 		})
 		it("should not create a new collection if one exists with matching vectorSize and return false", async () => {
 			// Mock getCollection to return existing collection info with matching vector size
@@ -562,14 +576,18 @@ describe("QdrantVectorStore", () => {
 			expect(mockQdrantClientInstance.createCollection).not.toHaveBeenCalled()
 			expect(mockQdrantClientInstance.deleteCollection).not.toHaveBeenCalled()
 
-			// Verify payload index creation still happens
+			// Verify payload index creation still happens - 'type' field first, then pathSegments
+			expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledWith(expectedCollectionName, {
+				field_name: "type",
+				field_schema: "keyword",
+			})
 			for (let i = 0; i <= 4; i++) {
 				expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledWith(expectedCollectionName, {
 					field_name: `pathSegments.${i}`,
 					field_schema: "keyword",
 				})
 			}
-			expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledTimes(5)
+			expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledTimes(6)
 		})
 		it("should recreate collection if it exists but vectorSize mismatches and return true", async () => {
 			const differentVectorSize = 768
@@ -606,17 +624,27 @@ describe("QdrantVectorStore", () => {
 				vectors: {
 					size: mockVectorSize, // Should use the new, correct vector size
 					distance: "Cosine",
+					on_disk: true,
+				},
+				hnsw_config: {
+					m: 64,
+					ef_construct: 512,
+					on_disk: true,
 				},
 			})
 
-			// Verify payload index creation
+			// Verify payload index creation - 'type' field first, then pathSegments
+			expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledWith(expectedCollectionName, {
+				field_name: "type",
+				field_schema: "keyword",
+			})
 			for (let i = 0; i <= 4; i++) {
 				expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledWith(expectedCollectionName, {
 					field_name: `pathSegments.${i}`,
 					field_schema: "keyword",
 				})
 			}
-			expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledTimes(5)
+			expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledTimes(6)
 			;(console.warn as any).mockRestore() // Restore console.warn
 		})
 		it("should log warning for non-404 errors but still create collection", async () => {
@@ -630,7 +658,7 @@ describe("QdrantVectorStore", () => {
 			expect(mockQdrantClientInstance.getCollection).toHaveBeenCalledTimes(1)
 			expect(mockQdrantClientInstance.createCollection).toHaveBeenCalledTimes(1)
 			expect(mockQdrantClientInstance.deleteCollection).not.toHaveBeenCalled()
-			expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledTimes(5)
+			expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledTimes(6)
 			expect(console.warn).toHaveBeenCalledWith(
 				expect.stringContaining(`Warning during getCollectionInfo for "${expectedCollectionName}"`),
 				genericError.message,
@@ -677,11 +705,16 @@ describe("QdrantVectorStore", () => {
 			expect(result).toBe(true)
 			expect(mockQdrantClientInstance.createCollection).toHaveBeenCalledTimes(1)
 
-			// Verify all payload index creations were attempted
-			expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledTimes(5)
+			// Verify all payload index creations were attempted (6: type + 5 pathSegments)
+			expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledTimes(6)
 
-			// Verify warnings were logged for each failed index
-			expect(console.warn).toHaveBeenCalledTimes(5)
+			// Verify warnings were logged for each failed index (now 6)
+			expect(console.warn).toHaveBeenCalledTimes(6)
+			// Verify warning for 'type' index
+			expect(console.warn).toHaveBeenCalledWith(
+				expect.stringContaining(`Could not create payload index for type`),
+				indexError.message,
+			)
 			for (let i = 0; i <= 4; i++) {
 				expect(console.warn).toHaveBeenCalledWith(
 					expect.stringContaining(`Could not create payload index for pathSegments.${i}`),
@@ -810,7 +843,7 @@ describe("QdrantVectorStore", () => {
 			expect(mockQdrantClientInstance.getCollection).toHaveBeenCalledTimes(2)
 			expect(mockQdrantClientInstance.deleteCollection).toHaveBeenCalledTimes(1)
 			expect(mockQdrantClientInstance.createCollection).toHaveBeenCalledTimes(1)
-			expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledTimes(5)
+			expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledTimes(6)
 			;(console.warn as any).mockRestore()
 		})
 
@@ -899,9 +932,15 @@ describe("QdrantVectorStore", () => {
 				vectors: {
 					size: newVectorSize, // Should create with new 768 dimensions
 					distance: "Cosine",
+					on_disk: true,
+				},
+				hnsw_config: {
+					m: 64,
+					ef_construct: 512,
+					on_disk: true,
 				},
 			})
-			expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledTimes(5)
+			expect(mockQdrantClientInstance.createPayloadIndex).toHaveBeenCalledTimes(6)
 			;(console.warn as any).mockRestore()
 		})
 
@@ -1238,9 +1277,9 @@ describe("QdrantVectorStore", () => {
 			const results = await vectorStore.search(queryVector)
 
 			expect(mockQdrantClientInstance.query).toHaveBeenCalledTimes(1)
-			expect(mockQdrantClientInstance.query).toHaveBeenCalledWith(expectedCollectionName, {
+			const callArgs = mockQdrantClientInstance.query.mock.calls[0][1]
+			expect(callArgs).toMatchObject({
 				query: queryVector,
-				filter: undefined,
 				score_threshold: DEFAULT_SEARCH_MIN_SCORE,
 				limit: DEFAULT_MAX_SEARCH_RESULTS,
 				params: {
@@ -1250,6 +1289,9 @@ describe("QdrantVectorStore", () => {
 				with_payload: {
 					include: ["filePath", "codeChunk", "startLine", "endLine", "pathSegments"],
 				},
+			})
+			expect(callArgs.filter).toEqual({
+				must_not: [{ key: "type", match: { value: "metadata" } }],
 			})
 
 			expect(results).toEqual(mockQdrantResults.points)
@@ -1278,29 +1320,20 @@ describe("QdrantVectorStore", () => {
 
 			const results = await vectorStore.search(queryVector, directoryPrefix)
 
-			expect(mockQdrantClientInstance.query).toHaveBeenCalledWith(expectedCollectionName, {
+			const callArgs2 = mockQdrantClientInstance.query.mock.calls[0][1]
+			expect(callArgs2).toMatchObject({
 				query: queryVector,
-				filter: {
-					must: [
-						{
-							key: "pathSegments.0",
-							match: { value: "src" },
-						},
-						{
-							key: "pathSegments.1",
-							match: { value: "components" },
-						},
-					],
-				},
 				score_threshold: DEFAULT_SEARCH_MIN_SCORE,
 				limit: DEFAULT_MAX_SEARCH_RESULTS,
-				params: {
-					hnsw_ef: 128,
-					exact: false,
-				},
-				with_payload: {
-					include: ["filePath", "codeChunk", "startLine", "endLine", "pathSegments"],
-				},
+				params: { hnsw_ef: 128, exact: false },
+				with_payload: { include: ["filePath", "codeChunk", "startLine", "endLine", "pathSegments"] },
+			})
+			expect(callArgs2.filter).toEqual({
+				must: [
+					{ key: "pathSegments.0", match: { value: "src" } },
+					{ key: "pathSegments.1", match: { value: "components" } },
+				],
+				must_not: [{ key: "type", match: { value: "metadata" } }],
 			})
 
 			expect(results).toEqual(mockQdrantResults.points)
@@ -1315,9 +1348,9 @@ describe("QdrantVectorStore", () => {
 
 			await vectorStore.search(queryVector, undefined, customMinScore)
 
-			expect(mockQdrantClientInstance.query).toHaveBeenCalledWith(expectedCollectionName, {
+			const callArgs3 = mockQdrantClientInstance.query.mock.calls[0][1]
+			expect(callArgs3).toMatchObject({
 				query: queryVector,
-				filter: undefined,
 				score_threshold: customMinScore,
 				limit: DEFAULT_MAX_SEARCH_RESULTS,
 				params: {
@@ -1327,6 +1360,9 @@ describe("QdrantVectorStore", () => {
 				with_payload: {
 					include: ["filePath", "codeChunk", "startLine", "endLine", "pathSegments"],
 				},
+			})
+			expect(callArgs3.filter).toEqual({
+				must_not: [{ key: "type", match: { value: "metadata" } }],
 			})
 		})
 
@@ -1339,9 +1375,9 @@ describe("QdrantVectorStore", () => {
 
 			await vectorStore.search(queryVector, undefined, undefined, customMaxResults)
 
-			expect(mockQdrantClientInstance.query).toHaveBeenCalledWith(expectedCollectionName, {
+			const callArgs4 = mockQdrantClientInstance.query.mock.calls[0][1]
+			expect(callArgs4).toMatchObject({
 				query: queryVector,
-				filter: undefined,
 				score_threshold: DEFAULT_SEARCH_MIN_SCORE,
 				limit: customMaxResults,
 				params: {
@@ -1351,6 +1387,9 @@ describe("QdrantVectorStore", () => {
 				with_payload: {
 					include: ["filePath", "codeChunk", "startLine", "endLine", "pathSegments"],
 				},
+			})
+			expect(callArgs4.filter).toEqual({
+				must_not: [{ key: "type", match: { value: "metadata" } }],
 			})
 		})
 
@@ -1467,28 +1506,9 @@ describe("QdrantVectorStore", () => {
 
 			await vectorStore.search(queryVector, directoryPrefix)
 
-			expect(mockQdrantClientInstance.query).toHaveBeenCalledWith(expectedCollectionName, {
+			const callArgs5 = mockQdrantClientInstance.query.mock.calls[0][1]
+			expect(callArgs5).toMatchObject({
 				query: queryVector,
-				filter: {
-					must: [
-						{
-							key: "pathSegments.0",
-							match: { value: "src" },
-						},
-						{
-							key: "pathSegments.1",
-							match: { value: "components" },
-						},
-						{
-							key: "pathSegments.2",
-							match: { value: "ui" },
-						},
-						{
-							key: "pathSegments.3",
-							match: { value: "forms" },
-						},
-					],
-				},
 				score_threshold: DEFAULT_SEARCH_MIN_SCORE,
 				limit: DEFAULT_MAX_SEARCH_RESULTS,
 				params: {
@@ -1498,6 +1518,15 @@ describe("QdrantVectorStore", () => {
 				with_payload: {
 					include: ["filePath", "codeChunk", "startLine", "endLine", "pathSegments"],
 				},
+			})
+			expect(callArgs5.filter).toEqual({
+				must: [
+					{ key: "pathSegments.0", match: { value: "src" } },
+					{ key: "pathSegments.1", match: { value: "components" } },
+					{ key: "pathSegments.2", match: { value: "ui" } },
+					{ key: "pathSegments.3", match: { value: "forms" } },
+				],
+				must_not: [{ key: "type", match: { value: "metadata" } }],
 			})
 		})
 
@@ -1525,6 +1554,225 @@ describe("QdrantVectorStore", () => {
 			const callArgs = mockQdrantClientInstance.query.mock.calls[0][1]
 			expect(callArgs.limit).toBe(DEFAULT_MAX_SEARCH_RESULTS)
 			expect(callArgs.score_threshold).toBe(DEFAULT_SEARCH_MIN_SCORE)
+		})
+
+		describe("current directory path handling", () => {
+			it("should not apply filter when directoryPrefix is '.'", async () => {
+				const queryVector = [0.1, 0.2, 0.3]
+				const directoryPrefix = "."
+				const mockQdrantResults = {
+					points: [
+						{
+							id: "test-id-1",
+							score: 0.85,
+							payload: {
+								filePath: "src/test.ts",
+								codeChunk: "test code",
+								startLine: 1,
+								endLine: 5,
+								pathSegments: { "0": "src", "1": "test.ts" },
+							},
+						},
+					],
+				}
+
+				mockQdrantClientInstance.query.mockResolvedValue(mockQdrantResults)
+
+				const results = await vectorStore.search(queryVector, directoryPrefix)
+
+				const callArgs7 = mockQdrantClientInstance.query.mock.calls[0][1]
+				expect(callArgs7).toMatchObject({
+					query: queryVector,
+					score_threshold: DEFAULT_SEARCH_MIN_SCORE,
+					limit: DEFAULT_MAX_SEARCH_RESULTS,
+					params: {
+						hnsw_ef: 128,
+						exact: false,
+					},
+					with_payload: {
+						include: ["filePath", "codeChunk", "startLine", "endLine", "pathSegments"],
+					},
+				})
+				expect(callArgs7.filter).toEqual({
+					must_not: [{ key: "type", match: { value: "metadata" } }],
+				})
+
+				expect(results).toEqual(mockQdrantResults.points)
+			})
+
+			it("should not apply filter when directoryPrefix is './'", async () => {
+				const queryVector = [0.1, 0.2, 0.3]
+				const directoryPrefix = "./"
+				const mockQdrantResults = { points: [] }
+
+				mockQdrantClientInstance.query.mockResolvedValue(mockQdrantResults)
+
+				await vectorStore.search(queryVector, directoryPrefix)
+
+				const callArgs6 = mockQdrantClientInstance.query.mock.calls[0][1]
+				expect(callArgs6).toMatchObject({
+					query: queryVector,
+					score_threshold: DEFAULT_SEARCH_MIN_SCORE,
+					limit: DEFAULT_MAX_SEARCH_RESULTS,
+					params: {
+						hnsw_ef: 128,
+						exact: false,
+					},
+					with_payload: {
+						include: ["filePath", "codeChunk", "startLine", "endLine", "pathSegments"],
+					},
+				})
+				expect(callArgs6.filter).toEqual({
+					must_not: [{ key: "type", match: { value: "metadata" } }],
+				})
+			})
+
+			it("should not apply filter when directoryPrefix is empty string", async () => {
+				const queryVector = [0.1, 0.2, 0.3]
+				const directoryPrefix = ""
+				const mockQdrantResults = { points: [] }
+
+				mockQdrantClientInstance.query.mockResolvedValue(mockQdrantResults)
+
+				await vectorStore.search(queryVector, directoryPrefix)
+
+				const callArgs8 = mockQdrantClientInstance.query.mock.calls[0][1]
+				expect(callArgs8).toMatchObject({
+					query: queryVector,
+					score_threshold: DEFAULT_SEARCH_MIN_SCORE,
+					limit: DEFAULT_MAX_SEARCH_RESULTS,
+					params: {
+						hnsw_ef: 128,
+						exact: false,
+					},
+					with_payload: {
+						include: ["filePath", "codeChunk", "startLine", "endLine", "pathSegments"],
+					},
+				})
+				expect(callArgs8.filter).toEqual({
+					must_not: [{ key: "type", match: { value: "metadata" } }],
+				})
+			})
+
+			it("should not apply filter when directoryPrefix is '.\\' (Windows style)", async () => {
+				const queryVector = [0.1, 0.2, 0.3]
+				const directoryPrefix = ".\\"
+				const mockQdrantResults = { points: [] }
+
+				mockQdrantClientInstance.query.mockResolvedValue(mockQdrantResults)
+
+				await vectorStore.search(queryVector, directoryPrefix)
+
+				const callArgs9 = mockQdrantClientInstance.query.mock.calls[0][1]
+				expect(callArgs9).toMatchObject({
+					query: queryVector,
+					score_threshold: DEFAULT_SEARCH_MIN_SCORE,
+					limit: DEFAULT_MAX_SEARCH_RESULTS,
+					params: {
+						hnsw_ef: 128,
+						exact: false,
+					},
+					with_payload: {
+						include: ["filePath", "codeChunk", "startLine", "endLine", "pathSegments"],
+					},
+				})
+				expect(callArgs9.filter).toEqual({
+					must_not: [{ key: "type", match: { value: "metadata" } }],
+				})
+			})
+
+			it("should not apply filter when directoryPrefix has trailing slashes", async () => {
+				const queryVector = [0.1, 0.2, 0.3]
+				const directoryPrefix = ".///"
+				const mockQdrantResults = { points: [] }
+
+				mockQdrantClientInstance.query.mockResolvedValue(mockQdrantResults)
+
+				await vectorStore.search(queryVector, directoryPrefix)
+
+				const callArgs10 = mockQdrantClientInstance.query.mock.calls[0][1]
+				expect(callArgs10).toMatchObject({
+					query: queryVector,
+					score_threshold: DEFAULT_SEARCH_MIN_SCORE,
+					limit: DEFAULT_MAX_SEARCH_RESULTS,
+					params: {
+						hnsw_ef: 128,
+						exact: false,
+					},
+					with_payload: {
+						include: ["filePath", "codeChunk", "startLine", "endLine", "pathSegments"],
+					},
+				})
+				expect(callArgs10.filter).toEqual({
+					must_not: [{ key: "type", match: { value: "metadata" } }],
+				})
+			})
+
+			it("should still apply filter for relative paths like './src'", async () => {
+				const queryVector = [0.1, 0.2, 0.3]
+				const directoryPrefix = "./src"
+				const mockQdrantResults = { points: [] }
+
+				mockQdrantClientInstance.query.mockResolvedValue(mockQdrantResults)
+
+				await vectorStore.search(queryVector, directoryPrefix)
+
+				const callArgs11 = mockQdrantClientInstance.query.mock.calls[0][1]
+				expect(callArgs11).toMatchObject({
+					query: queryVector,
+					score_threshold: DEFAULT_SEARCH_MIN_SCORE,
+					limit: DEFAULT_MAX_SEARCH_RESULTS,
+					params: {
+						hnsw_ef: 128,
+						exact: false,
+					},
+					with_payload: {
+						include: ["filePath", "codeChunk", "startLine", "endLine", "pathSegments"],
+					},
+				})
+				expect(callArgs11.filter).toEqual({
+					must: [
+						{
+							key: "pathSegments.0",
+							match: { value: "src" },
+						},
+					],
+					must_not: [{ key: "type", match: { value: "metadata" } }],
+				}) // Should normalize "./src" to "src"
+			})
+
+			it("should still apply filter for regular directory paths", async () => {
+				const queryVector = [0.1, 0.2, 0.3]
+				const directoryPrefix = "src"
+				const mockQdrantResults = { points: [] }
+
+				mockQdrantClientInstance.query.mockResolvedValue(mockQdrantResults)
+
+				await vectorStore.search(queryVector, directoryPrefix)
+
+				const callArgs12 = mockQdrantClientInstance.query.mock.calls[0][1]
+				expect(callArgs12).toMatchObject({
+					query: queryVector,
+					score_threshold: DEFAULT_SEARCH_MIN_SCORE,
+					limit: DEFAULT_MAX_SEARCH_RESULTS,
+					params: {
+						hnsw_ef: 128,
+						exact: false,
+					},
+					with_payload: {
+						include: ["filePath", "codeChunk", "startLine", "endLine", "pathSegments"],
+					},
+				})
+				expect(callArgs12.filter).toEqual({
+					must: [
+						{
+							key: "pathSegments.0",
+							match: { value: "src" },
+						},
+					],
+					must_not: [{ key: "type", match: { value: "metadata" } }],
+				}) // Should still create filter for regular paths
+			})
 		})
 	})
 })

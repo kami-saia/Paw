@@ -10,18 +10,26 @@
 		},
 		"openrouter": {
 			"description": "Un'interfaccia unificata per LLMs"
+		},
+		"roo": {
+			"description": "I migliori modelli gratuiti per iniziare",
+			"incentive": "Prova Roo gratuitamente"
 		}
 	},
-	"chooseProvider": "Per fare la sua magia, Roo ha bisogno di una chiave API.",
+	"chooseProvider": "Per iniziare, hai bisogno di un provider LLM:",
+	"providerSignup": {
+		"rooCloudProvider": "Provider Roo Code Cloud",
+		"rooCloudDescription": "Il modo più semplice per usare Roo. Un mix curato di modelli gratuiti e a pagamento a basso costo",
+		"learnMore": "scopri di più",
+		"useAnotherProvider": "Usa un altro provider",
+		"useAnotherProviderDescription": "Inserisci una chiave API e inizia.",
+		"getStarted": "Inizia"
+	},
 	"startRouter": "Consigliamo di utilizzare un router LLM:",
 	"startCustom": "Oppure puoi utilizzare la tua chiave API:",
 	"telemetry": {
-		"title": "Aiuta a migliorare Roo Code",
-		"anonymousTelemetry": "Invia dati di utilizzo ed errori anonimi per aiutarci a correggere bug e migliorare l'estensione. Non viene mai inviato codice, testo o informazioni personali.",
-		"changeSettings": "Puoi sempre cambiare questo in fondo alle <settingsLink>impostazioni</settingsLink>",
-		"settings": "impostazioni",
-		"allow": "Consenti",
-		"deny": "Nega"
+		"helpImprove": "Aiuta a migliorare Roo Code",
+		"helpImproveMessage": "Roo Code raccoglie dati di errori e utilizzo per aiutarci a correggere bug e migliorare l'estensione. Questa telemetria non raccoglie codice, prompt o informazioni personali. Puoi disabilitare questo nelle <settingsLink>impostazioni</settingsLink>."
 	},
 	"importSettings": "Importa impostazioni"
 }

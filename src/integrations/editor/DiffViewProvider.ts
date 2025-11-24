@@ -12,7 +12,8 @@ import { formatResponse } from "../../core/prompts/responses"
 import { diagnosticsToProblemsString, getNewDiagnostics } from "../diagnostics"
 import { ClineSayTool } from "../../shared/ExtensionMessage"
 import { Task } from "../../core/task/Task"
-import { DEFAULT_WRITE_DELAY_MS } from "@roo-code/types"
+import { DEFAULT_WRITE_DELAY_MS, isNativeProtocol } from "@roo-code/types"
+import { resolveToolProtocol } from "../../utils/resolveToolProtocol"
 
 import { DecorationController } from "./DecorationController"
 
@@ -54,8 +55,8 @@ export class DiffViewProvider {
 		// If the file is already open, ensure it's not dirty before getting its
 		// contents.
 		if (fileExists) {
-			const existingDocument = vscode.workspace.textDocuments.find((doc) =>
-				arePathsEqual(doc.uri.fsPath, absolutePath),
+			const existingDocument = vscode.workspace.textDocuments.find(
+				(doc) => doc.uri.scheme === "file" && arePathsEqual(doc.uri.fsPath, absolutePath),
 			)
 
 			if (existingDocument && existingDocument.isDirty) {
@@ -91,7 +92,10 @@ export class DiffViewProvider {
 			.map((tg) => tg.tabs)
 			.flat()
 			.filter(
-				(tab) => tab.input instanceof vscode.TabInputText && arePathsEqual(tab.input.uri.fsPath, absolutePath),
+				(tab) =>
+					tab.input instanceof vscode.TabInputText &&
+					tab.input.uri.scheme === "file" &&
+					arePathsEqual(tab.input.uri.fsPath, absolutePath),
 			)
 
 		for (const tab of tabs) {
@@ -297,11 +301,12 @@ export class DiffViewProvider {
 	}
 
 	/**
-	 * Formats a standardized XML response for file write operations
+	 * Formats a standardized response for file write operations
 	 *
+	 * @param task Task instance to get protocol info
 	 * @param cwd Current working directory for path resolution
 	 * @param isNewFile Whether this is a new file or an existing file being modified
-	 * @returns Formatted message and say object for UI feedback
+	 * @returns Formatted message (JSON for native protocol, XML for legacy)
 	 */
 	async pushToolWriteResult(task: Task, cwd: string, isNewFile: boolean): Promise<string> {
 		if (!this.relPath) {
@@ -321,49 +326,75 @@ export class DiffViewProvider {
 			await task.say("user_feedback_diff", JSON.stringify(say))
 		}
 
-		// Build XML response
-		const xmlObj = {
-			file_write_result: {
+		// Check which protocol we're using
+		const toolProtocol = resolveToolProtocol(task.apiConfiguration, task.api.getModel().info)
+		const useNative = isNativeProtocol(toolProtocol)
+
+		// Build notices array
+		const notices = [
+			"You do not need to re-read the file, as you have seen all changes",
+			"Proceed with the task using these changes as the new baseline.",
+			...(this.userEdits
+				? [
+						"If the user's edits have addressed part of the task or changed the requirements, adjust your approach accordingly.",
+					]
+				: []),
+		]
+
+		if (useNative) {
+			// Return JSON for native protocol
+			const result: any = {
 				path: this.relPath,
 				operation: isNewFile ? "created" : "modified",
-				user_edits: this.userEdits ? this.userEdits : undefined,
-				problems: this.newProblemsMessage || undefined,
-				notice: {
-					i: [
-						"You do not need to re-read the file, as you have seen all changes",
-						"Proceed with the task using these changes as the new baseline.",
-						...(this.userEdits
-							? [
-									"If the user's edits have addressed part of the task or changed the requirements, adjust your approach accordingly.",
-								]
-							: []),
-					],
+				notice: notices.join(" "),
+			}
+
+			if (this.userEdits) {
+				result.user_edits = this.userEdits
+			}
+
+			if (this.newProblemsMessage) {
+				result.problems = this.newProblemsMessage
+			}
+
+			return JSON.stringify(result)
+		} else {
+			// Build XML response for legacy protocol
+			const xmlObj = {
+				file_write_result: {
+					path: this.relPath,
+					operation: isNewFile ? "created" : "modified",
+					user_edits: this.userEdits ? this.userEdits : undefined,
+					problems: this.newProblemsMessage || undefined,
+					notice: {
+						i: notices,
+					},
 				},
-			},
+			}
+
+			const builder = new XMLBuilder({
+				format: true,
+				indentBy: "",
+				suppressEmptyNode: true,
+				processEntities: false,
+				tagValueProcessor: (name, value) => {
+					if (typeof value === "string") {
+						// Only escape <, >, and & characters
+						return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+					}
+					return value
+				},
+				attributeValueProcessor: (name, value) => {
+					if (typeof value === "string") {
+						// Only escape <, >, and & characters
+						return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+					}
+					return value
+				},
+			})
+
+			return builder.build(xmlObj)
 		}
-
-		const builder = new XMLBuilder({
-			format: true,
-			indentBy: "",
-			suppressEmptyNode: true,
-			processEntities: false,
-			tagValueProcessor: (name, value) => {
-				if (typeof value === "string") {
-					// Only escape <, >, and & characters
-					return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-				}
-				return value
-			},
-			attributeValueProcessor: (name, value) => {
-				if (typeof value === "string") {
-					// Only escape <, >, and & characters
-					return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-				}
-				return value
-			},
-		})
-
-		return builder.build(xmlObj)
 	}
 
 	async revertChanges(): Promise<void> {
@@ -509,13 +540,14 @@ export class DiffViewProvider {
 			// Listen for document open events - more efficient than scanning all tabs
 			disposables.push(
 				vscode.workspace.onDidOpenTextDocument(async (document) => {
-					if (arePathsEqual(document.uri.fsPath, uri.fsPath)) {
+					// Only match file:// scheme documents to avoid git diffs
+					if (document.uri.scheme === "file" && arePathsEqual(document.uri.fsPath, uri.fsPath)) {
 						// Wait a tick for the editor to be available
 						await new Promise((r) => setTimeout(r, 0))
 
 						// Find the editor for this document
-						const editor = vscode.window.visibleTextEditors.find((e) =>
-							arePathsEqual(e.document.uri.fsPath, uri.fsPath),
+						const editor = vscode.window.visibleTextEditors.find(
+							(e) => e.document.uri.scheme === "file" && arePathsEqual(e.document.uri.fsPath, uri.fsPath),
 						)
 
 						if (editor) {
@@ -529,7 +561,11 @@ export class DiffViewProvider {
 			// Also listen for visible editor changes as a fallback
 			disposables.push(
 				vscode.window.onDidChangeVisibleTextEditors((editors) => {
-					const editor = editors.find((e) => arePathsEqual(e.document.uri.fsPath, uri.fsPath))
+					const editor = editors.find((e) => {
+						const isFileScheme = e.document.uri.scheme === "file"
+						const pathMatches = arePathsEqual(e.document.uri.fsPath, uri.fsPath)
+						return isFileScheme && pathMatches
+					})
 					if (editor) {
 						cleanup()
 						resolve(editor)
@@ -627,5 +663,100 @@ export class DiffViewProvider {
 		this.activeLineController = undefined
 		this.streamedLines = []
 		this.preDiagnostics = []
+	}
+
+	/**
+	 * Directly save content to a file without showing diff view
+	 * Used when preventFocusDisruption experiment is enabled
+	 *
+	 * @param relPath - Relative path to the file
+	 * @param content - Content to write to the file
+	 * @param openFile - Whether to show the file in editor (false = open in memory only for diagnostics)
+	 * @returns Result of the save operation including any new problems detected
+	 */
+	async saveDirectly(
+		relPath: string,
+		content: string,
+		openFile: boolean = true,
+		diagnosticsEnabled: boolean = true,
+		writeDelayMs: number = DEFAULT_WRITE_DELAY_MS,
+	): Promise<{
+		newProblemsMessage: string | undefined
+		userEdits: string | undefined
+		finalContent: string | undefined
+	}> {
+		const absolutePath = path.resolve(this.cwd, relPath)
+
+		// Get diagnostics before editing the file
+		this.preDiagnostics = vscode.languages.getDiagnostics()
+
+		// Write the content directly to the file
+		await createDirectoriesForFile(absolutePath)
+		await fs.writeFile(absolutePath, content, "utf-8")
+
+		// Open the document to ensure diagnostics are loaded
+		// When openFile is false (PREVENT_FOCUS_DISRUPTION enabled), we only open in memory
+		if (openFile) {
+			// Show the document in the editor
+			await vscode.window.showTextDocument(vscode.Uri.file(absolutePath), {
+				preview: false,
+				preserveFocus: true,
+			})
+		} else {
+			// Just open the document in memory to trigger diagnostics without showing it
+			const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(absolutePath))
+
+			// Save the document to ensure VSCode recognizes it as saved and triggers diagnostics
+			if (doc.isDirty) {
+				await doc.save()
+			}
+
+			// Force a small delay to ensure diagnostics are triggered
+			await new Promise((resolve) => setTimeout(resolve, 100))
+		}
+
+		let newProblemsMessage = ""
+
+		if (diagnosticsEnabled) {
+			// Add configurable delay to allow linters time to process
+			const safeDelayMs = Math.max(0, writeDelayMs)
+
+			try {
+				await delay(safeDelayMs)
+			} catch (error) {
+				console.warn(`Failed to apply write delay: ${error}`)
+			}
+
+			const postDiagnostics = vscode.languages.getDiagnostics()
+
+			// Get diagnostic settings from state
+			const task = this.taskRef.deref()
+			const state = await task?.providerRef.deref()?.getState()
+			const includeDiagnosticMessages = state?.includeDiagnosticMessages ?? true
+			const maxDiagnosticMessages = state?.maxDiagnosticMessages ?? 50
+
+			const newProblems = await diagnosticsToProblemsString(
+				getNewDiagnostics(this.preDiagnostics, postDiagnostics),
+				[vscode.DiagnosticSeverity.Error],
+				this.cwd,
+				includeDiagnosticMessages,
+				maxDiagnosticMessages,
+			)
+
+			newProblemsMessage =
+				newProblems.length > 0 ? `\n\nNew problems detected after saving the file:\n${newProblems}` : ""
+		}
+
+		// Store the results for formatFileWriteResponse
+		this.newProblemsMessage = newProblemsMessage
+		this.userEdits = undefined
+		this.relPath = relPath
+		this.newContent = content
+
+		return {
+			newProblemsMessage,
+			userEdits: undefined,
+			finalContent: content,
+		}
 	}
 }

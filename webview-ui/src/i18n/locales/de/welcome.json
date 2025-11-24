@@ -10,18 +10,26 @@
 		},
 		"openrouter": {
 			"description": "Eine einheitliche Schnittstelle für LLMs"
+		},
+		"roo": {
+			"description": "Die besten kostenlosen Modelle für den Einstieg",
+			"incentive": "Probier Roo kostenlos aus"
 		}
 	},
-	"chooseProvider": "Um seine Magie zu entfalten, benötigt Roo einen API-Schlüssel.",
+	"chooseProvider": "Um loszulegen, brauchst du einen LLM-Anbieter:",
+	"providerSignup": {
+		"rooCloudProvider": "Roo Code Cloud Provider",
+		"rooCloudDescription": "Der einfachste Weg, Roo zu nutzen. Eine kuratierte Mischung aus kostenlosen und bezahlten Modellen zu niedrigen Kosten",
+		"learnMore": "mehr erfahren",
+		"useAnotherProvider": "Anderen Anbieter verwenden",
+		"useAnotherProviderDescription": "Gib einen API-Schlüssel ein und leg los.",
+		"getStarted": "Loslegen"
+	},
 	"startRouter": "Wir empfehlen die Verwendung eines LLM-Routers:",
 	"startCustom": "Oder du kannst deinen eigenen API-Schlüssel verwenden:",
 	"telemetry": {
-		"title": "Hilf, Roo Code zu verbessern",
-		"anonymousTelemetry": "Sende anonyme Fehler- und Nutzungsdaten, um uns bei der Fehlerbehebung und Verbesserung der Erweiterung zu helfen. Es werden niemals Code, Texte oder persönliche Informationen gesendet.",
-		"changeSettings": "Du kannst dies jederzeit unten in den <settingsLink>Einstellungen</settingsLink> ändern",
-		"settings": "Einstellungen",
-		"allow": "Erlauben",
-		"deny": "Ablehnen"
+		"helpImprove": "Hilf, Roo Code zu verbessern",
+		"helpImproveMessage": "Roo Code sammelt Fehler- und Nutzungsdaten, um uns dabei zu helfen, Fehler zu beheben und die Erweiterung zu verbessern. Diese Telemetrie sammelt keine Code-, Prompt- oder persönliche Informationen. Du kannst diese in den <settingsLink>Einstellungen</settingsLink> deaktivieren."
 	},
 	"importSettings": "Einstellungen importieren"
 }

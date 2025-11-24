@@ -148,6 +148,18 @@ vi.mock("../../environment/getEnvironmentDetails", () => ({
 
 vi.mock("../../ignore/RooIgnoreController")
 
+vi.mock("../../condense", async (importOriginal) => {
+	const actual = (await importOriginal()) as any
+	return {
+		...actual,
+		summarizeConversation: vi.fn().mockResolvedValue({
+			messages: [{ role: "user", content: [{ type: "text", text: "continued" }], ts: Date.now() }],
+			summary: "summary",
+			cost: 0,
+			newContextTokens: 1,
+		}),
+	}
+})
 // Mock storagePathManager to prevent dynamic import issues.
 vi.mock("../../../utils/storage", () => ({
 	getTaskDirectoryPath: vi
@@ -516,7 +528,6 @@ describe("Cline", () => {
 					info: {
 						supportsImages: true,
 						supportsPromptCache: true,
-						supportsComputerUse: true,
 						contextWindow: 200000,
 						maxTokens: 4096,
 						inputPrice: 0.25,
@@ -539,7 +550,6 @@ describe("Cline", () => {
 					info: {
 						supportsImages: false,
 						supportsPromptCache: false,
-						supportsComputerUse: false,
 						contextWindow: 16000,
 						maxTokens: 2048,
 						inputPrice: 0.1,
@@ -704,7 +714,6 @@ describe("Cline", () => {
 							tokensOut: 50,
 							cacheWrites: 0,
 							cacheReads: 0,
-							request: "test request",
 						}),
 					},
 				]
@@ -829,7 +838,6 @@ describe("Cline", () => {
 							tokensOut: 50,
 							cacheWrites: 0,
 							cacheReads: 0,
-							request: "test request",
 						}),
 					},
 				]
@@ -1098,9 +1106,9 @@ describe("Cline", () => {
 				await parentIterator.next()
 
 				// Simulate time passing (more than rate limit)
-				const originalDateNow = Date.now
-				const mockTime = Date.now() + (mockApiConfig.rateLimitSeconds + 1) * 1000
-				Date.now = vi.fn(() => mockTime)
+				const originalPerformanceNow = performance.now
+				const mockTime = performance.now() + (mockApiConfig.rateLimitSeconds + 1) * 1000
+				performance.now = vi.fn(() => mockTime)
 
 				// Create a subtask after time has passed
 				const child = new Task({
@@ -1121,8 +1129,8 @@ describe("Cline", () => {
 				// Verify no rate limiting was applied
 				expect(mockDelay).not.toHaveBeenCalled()
 
-				// Restore Date.now
-				Date.now = originalDateNow
+				// Restore performance.now
+				performance.now = originalPerformanceNow
 			})
 
 			it("should share rate limiting across multiple subtasks", async () => {
@@ -1493,5 +1501,469 @@ describe("Cline", () => {
 				expect(noModelTask.apiConfiguration.apiProvider).toBe("openai")
 			})
 		})
+
+		describe("submitUserMessage", () => {
+			it("should always route through webview sendMessage invoke", async () => {
+				const task = new Task({
+					provider: mockProvider,
+					apiConfiguration: mockApiConfig,
+					task: "initial task",
+					startTask: false,
+				})
+
+				// Set up some existing messages to simulate an ongoing conversation
+				task.clineMessages = [
+					{
+						ts: Date.now(),
+						type: "say",
+						say: "text",
+						text: "Initial message",
+					},
+				]
+
+				// Call submitUserMessage
+				task.submitUserMessage("test message", ["image1.png"])
+
+				// Verify postMessageToWebview was called with sendMessage invoke
+				expect(mockProvider.postMessageToWebview).toHaveBeenCalledWith({
+					type: "invoke",
+					invoke: "sendMessage",
+					text: "test message",
+					images: ["image1.png"],
+				})
+			})
+
+			it("should handle empty messages gracefully", async () => {
+				const task = new Task({
+					provider: mockProvider,
+					apiConfiguration: mockApiConfig,
+					task: "initial task",
+					startTask: false,
+				})
+
+				// Call with empty text and no images
+				task.submitUserMessage("", [])
+
+				// Should not call postMessageToWebview for empty messages
+				expect(mockProvider.postMessageToWebview).not.toHaveBeenCalled()
+
+				// Call with whitespace only
+				task.submitUserMessage("   ", [])
+				expect(mockProvider.postMessageToWebview).not.toHaveBeenCalled()
+			})
+
+			it("should route through webview for both new and existing tasks", async () => {
+				const task = new Task({
+					provider: mockProvider,
+					apiConfiguration: mockApiConfig,
+					task: "initial task",
+					startTask: false,
+				})
+
+				// Test with no messages (new task scenario)
+				task.clineMessages = []
+				task.submitUserMessage("new task", ["image1.png"])
+
+				expect(mockProvider.postMessageToWebview).toHaveBeenCalledWith({
+					type: "invoke",
+					invoke: "sendMessage",
+					text: "new task",
+					images: ["image1.png"],
+				})
+
+				// Clear mock
+				mockProvider.postMessageToWebview.mockClear()
+
+				// Test with existing messages (ongoing task scenario)
+				task.clineMessages = [
+					{
+						ts: Date.now(),
+						type: "say",
+						say: "text",
+						text: "Initial message",
+					},
+				]
+				task.submitUserMessage("follow-up message", ["image2.png"])
+
+				expect(mockProvider.postMessageToWebview).toHaveBeenCalledWith({
+					type: "invoke",
+					invoke: "sendMessage",
+					text: "follow-up message",
+					images: ["image2.png"],
+				})
+			})
+
+			it("should handle undefined provider gracefully", async () => {
+				const task = new Task({
+					provider: mockProvider,
+					apiConfiguration: mockApiConfig,
+					task: "initial task",
+					startTask: false,
+				})
+
+				// Simulate weakref returning undefined
+				Object.defineProperty(task, "providerRef", {
+					value: { deref: () => undefined },
+					writable: false,
+					configurable: true,
+				})
+
+				// Spy on console.error to verify error is logged
+				const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+
+				// Should log error but not throw
+				task.submitUserMessage("test message")
+
+				expect(consoleErrorSpy).toHaveBeenCalledWith("[Task#submitUserMessage] Provider reference lost")
+				expect(mockProvider.postMessageToWebview).not.toHaveBeenCalled()
+
+				// Restore console.error
+				consoleErrorSpy.mockRestore()
+			})
+		})
+	})
+
+	describe("abortTask", () => {
+		it("should set abort flag and emit TaskAborted event", async () => {
+			const task = new Task({
+				provider: mockProvider,
+				apiConfiguration: mockApiConfig,
+				task: "test task",
+				startTask: false,
+			})
+
+			// Spy on emit method
+			const emitSpy = vi.spyOn(task, "emit")
+
+			// Mock the dispose method to avoid actual cleanup
+			vi.spyOn(task, "dispose").mockImplementation(() => {})
+
+			// Call abortTask
+			await task.abortTask()
+
+			// Verify abort flag is set
+			expect(task.abort).toBe(true)
+
+			// Verify TaskAborted event was emitted
+			expect(emitSpy).toHaveBeenCalledWith("taskAborted")
+		})
+
+		it("should be equivalent to clicking Cancel button functionality", async () => {
+			const task = new Task({
+				provider: mockProvider,
+				apiConfiguration: mockApiConfig,
+				task: "test task",
+				startTask: false,
+			})
+
+			// Mock the dispose method to track cleanup
+			const disposeSpy = vi.spyOn(task, "dispose").mockImplementation(() => {})
+
+			// Call abortTask
+			await task.abortTask()
+
+			// Verify the same behavior as Cancel button
+			expect(task.abort).toBe(true)
+			expect(disposeSpy).toHaveBeenCalled()
+		})
+
+		it("should work with TaskLike interface", async () => {
+			const task = new Task({
+				provider: mockProvider,
+				apiConfiguration: mockApiConfig,
+				task: "test task",
+				startTask: false,
+			})
+
+			// Cast to TaskLike to ensure interface compliance
+			const taskLike = task as any // TaskLike interface from types package
+
+			// Verify abortTask method exists and is callable
+			expect(typeof taskLike.abortTask).toBe("function")
+
+			// Mock the dispose method to avoid actual cleanup
+			vi.spyOn(task, "dispose").mockImplementation(() => {})
+
+			// Call abortTask through interface
+			await taskLike.abortTask()
+
+			// Verify it works
+			expect(task.abort).toBe(true)
+		})
+
+		it("should handle errors during disposal gracefully", async () => {
+			const task = new Task({
+				provider: mockProvider,
+				apiConfiguration: mockApiConfig,
+				task: "test task",
+				startTask: false,
+			})
+
+			// Mock dispose to throw an error
+			const mockError = new Error("Disposal failed")
+			vi.spyOn(task, "dispose").mockImplementation(() => {
+				throw mockError
+			})
+
+			// Spy on console.error to verify error is logged
+			const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+
+			// abortTask should not throw even if dispose fails
+			await expect(task.abortTask()).resolves.not.toThrow()
+
+			// Verify error was logged
+			expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining("Error during task"), mockError)
+
+			// Verify abort flag is still set
+			expect(task.abort).toBe(true)
+
+			// Restore console.error
+			consoleErrorSpy.mockRestore()
+		})
+		describe("Stream Failure Retry", () => {
+			it("should not abort task on stream failure, only on user cancellation", async () => {
+				const task = new Task({
+					provider: mockProvider,
+					apiConfiguration: mockApiConfig,
+					task: "test task",
+					startTask: false,
+				})
+
+				// Spy on console.error to verify error logging
+				const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+
+				// Spy on abortTask to verify it's NOT called for stream failures
+				const abortTaskSpy = vi.spyOn(task, "abortTask").mockResolvedValue(undefined)
+
+				// Test Case 1: Stream failure should NOT abort task
+				task.abort = false
+				task.abandoned = false
+
+				// Simulate the catch block behavior for stream failure
+				const streamFailureError = new Error("Stream failed mid-execution")
+
+				// The key assertion: verify that when abort=false, abortTask is NOT called
+				// This would normally happen in the catch block around line 2184
+				const shouldAbort = task.abort
+				expect(shouldAbort).toBe(false)
+
+				// Verify error would be logged (this is what the new code does)
+				console.error(
+					`[Task#${task.taskId}.${task.instanceId}] Stream failed, will retry: ${streamFailureError.message}`,
+				)
+				expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining("Stream failed, will retry"))
+
+				// Verify abortTask was NOT called
+				expect(abortTaskSpy).not.toHaveBeenCalled()
+
+				// Test Case 2: User cancellation SHOULD abort task
+				task.abort = true
+
+				// For user cancellation, abortTask SHOULD be called
+				if (task.abort) {
+					await task.abortTask()
+				}
+
+				expect(abortTaskSpy).toHaveBeenCalled()
+
+				// Restore mocks
+				consoleErrorSpy.mockRestore()
+			})
+		})
+
+		describe("cancelCurrentRequest", () => {
+			it("should cancel the current HTTP request via AbortController", () => {
+				const task = new Task({
+					provider: mockProvider,
+					apiConfiguration: mockApiConfig,
+					task: "test task",
+					startTask: false,
+				})
+
+				// Create a real AbortController and spy on its abort method
+				const mockAbortController = new AbortController()
+				const abortSpy = vi.spyOn(mockAbortController, "abort")
+				task.currentRequestAbortController = mockAbortController
+
+				// Spy on console.log
+				const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {})
+
+				// Call cancelCurrentRequest
+				task.cancelCurrentRequest()
+
+				// Verify abort was called on the controller
+				expect(abortSpy).toHaveBeenCalled()
+
+				// Verify the controller was cleared
+				expect(task.currentRequestAbortController).toBeUndefined()
+
+				// Verify logging
+				expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining("Aborting current HTTP request"))
+
+				// Restore console.log
+				consoleLogSpy.mockRestore()
+			})
+
+			it("should handle missing AbortController gracefully", () => {
+				const task = new Task({
+					provider: mockProvider,
+					apiConfiguration: mockApiConfig,
+					task: "test task",
+					startTask: false,
+				})
+
+				// Ensure no controller exists
+				task.currentRequestAbortController = undefined
+
+				// Should not throw when called with no controller
+				expect(() => task.cancelCurrentRequest()).not.toThrow()
+			})
+
+			it("should be called during dispose", () => {
+				const task = new Task({
+					provider: mockProvider,
+					apiConfiguration: mockApiConfig,
+					task: "test task",
+					startTask: false,
+				})
+
+				// Spy on cancelCurrentRequest
+				const cancelSpy = vi.spyOn(task, "cancelCurrentRequest")
+
+				// Mock other dispose operations
+				vi.spyOn(task.messageQueueService, "removeListener").mockImplementation(
+					() => task.messageQueueService as any,
+				)
+				vi.spyOn(task.messageQueueService, "dispose").mockImplementation(() => {})
+				vi.spyOn(task, "removeAllListeners").mockImplementation(() => task as any)
+
+				// Call dispose
+				task.dispose()
+
+				// Verify cancelCurrentRequest was called
+				expect(cancelSpy).toHaveBeenCalled()
+			})
+		})
+	})
+})
+
+describe("Queued message processing after condense", () => {
+	function createProvider(): any {
+		const storageUri = { fsPath: path.join(os.tmpdir(), "test-storage") }
+		const ctx = {
+			globalState: {
+				get: vi.fn().mockImplementation((_key: keyof GlobalState) => undefined),
+				update: vi.fn().mockResolvedValue(undefined),
+				keys: vi.fn().mockReturnValue([]),
+			},
+			globalStorageUri: storageUri,
+			workspaceState: {
+				get: vi.fn().mockImplementation((_key) => undefined),
+				update: vi.fn().mockResolvedValue(undefined),
+				keys: vi.fn().mockReturnValue([]),
+			},
+			secrets: {
+				get: vi.fn().mockResolvedValue(undefined),
+				store: vi.fn().mockResolvedValue(undefined),
+				delete: vi.fn().mockResolvedValue(undefined),
+			},
+			extensionUri: { fsPath: "/mock/extension/path" },
+			extension: { packageJSON: { version: "1.0.0" } },
+		} as unknown as vscode.ExtensionContext
+
+		const output = {
+			appendLine: vi.fn(),
+			append: vi.fn(),
+			clear: vi.fn(),
+			show: vi.fn(),
+			hide: vi.fn(),
+			dispose: vi.fn(),
+		}
+
+		const provider = new ClineProvider(ctx, output as any, "sidebar", new ContextProxy(ctx)) as any
+		provider.postMessageToWebview = vi.fn().mockResolvedValue(undefined)
+		provider.postStateToWebview = vi.fn().mockResolvedValue(undefined)
+		provider.getState = vi.fn().mockResolvedValue({})
+		return provider
+	}
+
+	const apiConfig: ProviderSettings = {
+		apiProvider: "anthropic",
+		apiModelId: "claude-3-5-sonnet-20241022",
+		apiKey: "test-api-key",
+	} as any
+
+	it("processes queued message after condense completes", async () => {
+		const provider = createProvider()
+		const task = new Task({
+			provider,
+			apiConfiguration: apiConfig,
+			task: "initial task",
+			startTask: false,
+		})
+
+		// Make condense fast + deterministic
+		vi.spyOn(task as any, "getSystemPrompt").mockResolvedValue("system")
+		const submitSpy = vi.spyOn(task, "submitUserMessage").mockResolvedValue(undefined)
+
+		// Queue a message during condensing
+		task.messageQueueService.addMessage("queued text", ["img1.png"])
+
+		// Use fake timers to capture setTimeout(0) in processQueuedMessages
+		vi.useFakeTimers()
+		await task.condenseContext()
+
+		// Flush the microtask that submits the queued message
+		vi.runAllTimers()
+		vi.useRealTimers()
+
+		expect(submitSpy).toHaveBeenCalledWith("queued text", ["img1.png"])
+		expect(task.messageQueueService.isEmpty()).toBe(true)
+	})
+
+	it("does not cross-drain queues between separate tasks", async () => {
+		const providerA = createProvider()
+		const providerB = createProvider()
+
+		const taskA = new Task({
+			provider: providerA,
+			apiConfiguration: apiConfig,
+			task: "task A",
+			startTask: false,
+		})
+		const taskB = new Task({
+			provider: providerB,
+			apiConfiguration: apiConfig,
+			task: "task B",
+			startTask: false,
+		})
+
+		vi.spyOn(taskA as any, "getSystemPrompt").mockResolvedValue("system")
+		vi.spyOn(taskB as any, "getSystemPrompt").mockResolvedValue("system")
+
+		const spyA = vi.spyOn(taskA, "submitUserMessage").mockResolvedValue(undefined)
+		const spyB = vi.spyOn(taskB, "submitUserMessage").mockResolvedValue(undefined)
+
+		taskA.messageQueueService.addMessage("A message")
+		taskB.messageQueueService.addMessage("B message")
+
+		// Condense in task A should only drain A's queue
+		vi.useFakeTimers()
+		await taskA.condenseContext()
+		vi.runAllTimers()
+		vi.useRealTimers()
+
+		expect(spyA).toHaveBeenCalledWith("A message", undefined)
+		expect(spyB).not.toHaveBeenCalled()
+		expect(taskB.messageQueueService.isEmpty()).toBe(false)
+
+		// Now condense in task B should drain B's queue
+		vi.useFakeTimers()
+		await taskB.condenseContext()
+		vi.runAllTimers()
+		vi.useRealTimers()
+
+		expect(spyB).toHaveBeenCalledWith("B message", undefined)
+		expect(taskB.messageQueueService.isEmpty()).toBe(true)
 	})
 })

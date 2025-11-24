@@ -3,9 +3,9 @@ import { Trans } from "react-i18next"
 import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
 
 import { Package } from "@roo/package"
-
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@src/components/ui"
+import { vscode } from "@src/utils/vscode"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@src/components/ui"
 
 interface AnnouncementProps {
 	hideAnnouncement: () => void
@@ -37,71 +37,60 @@ const Announcement = ({ hideAnnouncement }: AnnouncementProps) => {
 			<DialogContent className="max-w-96">
 				<DialogHeader>
 					<DialogTitle>{t("chat:announcement.title", { version: Package.version })}</DialogTitle>
-					<DialogDescription>
-						{t("chat:announcement.description", { version: Package.version })}
-					</DialogDescription>
 				</DialogHeader>
 				<div>
-					<h3>{t("chat:announcement.whatsNew")}</h3>
-					<ul className="space-y-2">
-						<li>
-							•{" "}
-							<Trans
-								i18nKey="chat:announcement.feature1"
-								components={{
-									bold: <b />,
-									code: <code />,
-									settingsLink: (
-										<VSCodeLink
-											href="#"
-											onClick={(e) => {
-												e.preventDefault()
-												setOpen(false)
-												hideAnnouncement()
-												window.postMessage(
-													{
-														type: "action",
-														action: "settingsButtonClicked",
-														values: { section: "codebaseIndexing" },
-													},
-													"*",
-												)
-											}}
-										/>
-									),
-								}}
-							/>
-						</li>
-						<li>
-							•{" "}
-							<Trans
-								i18nKey="chat:announcement.feature2"
-								components={{
-									bold: <b />,
-									code: <code />,
-								}}
-							/>
-						</li>
-					</ul>
-					<Trans
-						i18nKey="chat:announcement.detailsDiscussLinks"
-						components={{ discordLink: <DiscordLink />, redditLink: <RedditLink /> }}
-					/>
+					{/* Regular Release Highlights */}
+					<div className="mb-4">
+						<p className="mb-3">{t("chat:announcement.release.heading")}</p>
+						<ul className="list-disc list-inside text-sm space-y-1.5">
+							<li>{t("chat:announcement.release.browserUse")}</li>
+							<li>{t("chat:announcement.release.cloudPaid")}</li>
+						</ul>
+					</div>
+
+					<div className="mt-4 text-sm text-center">
+						<Trans
+							i18nKey="chat:announcement.socialLinks"
+							components={{
+								xLink: <XLink />,
+								discordLink: <DiscordLink />,
+								redditLink: <RedditLink />,
+							}}
+						/>
+					</div>
+
+					{/* Careers Section */}
+					<div className="mt-2 text-sm text-center">
+						<Trans
+							i18nKey="chat:announcement.careers"
+							components={{
+								careersLink: <CareersLink />,
+							}}
+						/>
+					</div>
 				</div>
 			</DialogContent>
 		</Dialog>
 	)
 }
 
-const DiscordLink = () => (
+const XLink = () => (
 	<VSCodeLink
-		href="https://discord.gg/roocode"
+		href="https://x.com/roocode"
 		onClick={(e) => {
 			e.preventDefault()
-			window.postMessage(
-				{ type: "action", action: "openExternal", data: { url: "https://discord.gg/roocode" } },
-				"*",
-			)
+			vscode.postMessage({ type: "openExternal", url: "https://x.com/roocode" })
+		}}>
+		X
+	</VSCodeLink>
+)
+
+const DiscordLink = () => (
+	<VSCodeLink
+		href="https://discord.gg/rCQcvT7Fnt"
+		onClick={(e) => {
+			e.preventDefault()
+			vscode.postMessage({ type: "openExternal", url: "https://discord.gg/rCQcvT7Fnt" })
 		}}>
 		Discord
 	</VSCodeLink>
@@ -109,15 +98,23 @@ const DiscordLink = () => (
 
 const RedditLink = () => (
 	<VSCodeLink
-		href="https://reddit.com/r/RooCode"
+		href="https://www.reddit.com/r/RooCode/"
 		onClick={(e) => {
 			e.preventDefault()
-			window.postMessage(
-				{ type: "action", action: "openExternal", data: { url: "https://reddit.com/r/RooCode" } },
-				"*",
-			)
+			vscode.postMessage({ type: "openExternal", url: "https://www.reddit.com/r/RooCode/" })
 		}}>
-		Reddit
+		r/RooCode
+	</VSCodeLink>
+)
+
+const CareersLink = ({ children }: { children?: React.ReactNode }) => (
+	<VSCodeLink
+		href="https://careers.roocode.com"
+		onClick={(e) => {
+			e.preventDefault()
+			vscode.postMessage({ type: "openExternal", url: "https://careers.roocode.com" })
+		}}>
+		{children}
 	</VSCodeLink>
 )
 

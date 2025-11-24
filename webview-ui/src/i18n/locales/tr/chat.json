@@ -2,12 +2,15 @@
 	"greeting": "Roo Code'a Hoş Geldiniz",
 	"task": {
 		"title": "Görev",
+		"expand": "Görevi genişlet",
+		"collapse": "Görevi daralt",
 		"seeMore": "Daha fazla gör",
 		"seeLess": "Daha az gör",
-		"tokens": "Tokenlar:",
-		"cache": "Önbellek:",
-		"apiCost": "API Maliyeti:",
-		"contextWindow": "Bağlam Uzunluğu:",
+		"tokens": "Tokenlar",
+		"cache": "Önbellek",
+		"apiCost": "API Maliyeti",
+		"size": "Boyut",
+		"contextWindow": "Bağlam Uzunluğu",
 		"closeAndStart": "Görevi kapat ve yeni bir görev başlat",
 		"export": "Görev geçmişini dışa aktar",
 		"delete": "Görevi sil (Onayı atlamak için Shift + Tıkla)",
@@ -21,7 +24,9 @@
 		"connectToCloudDescription": "Görevleri paylaşmak için Roo Code Cloud'a giriş yap",
 		"sharingDisabledByOrganization": "Paylaşım kuruluş tarafından devre dışı bırakıldı",
 		"shareSuccessOrganization": "Organizasyon bağlantısı panoya kopyalandı",
-		"shareSuccessPublic": "Genel bağlantı panoya kopyalandı"
+		"shareSuccessPublic": "Genel bağlantı panoya kopyalandı",
+		"openInCloud": "Görevi Roo Code Cloud'da aç",
+		"openInCloudIntro": "Roo'yu her yerden izlemeye veya etkileşime devam et. Açmak için tara, tıkla veya kopyala."
 	},
 	"unpin": "Sabitlemeyi iptal et",
 	"pin": "Sabitle",
@@ -56,7 +61,7 @@
 		"tooltip": "Bu eylemi onayla"
 	},
 	"runCommand": {
-		"title": "Komutu Çalıştır",
+		"title": "Komut",
 		"tooltip": "Bu komutu çalıştır"
 	},
 	"proceedWhileRunning": {
@@ -80,24 +85,17 @@
 		"tooltip": "Mevcut işlemi iptal et"
 	},
 	"scrollToBottom": "Sohbetin altına kaydır",
-	"about": "AI yardımıyla kod oluşturun, yeniden düzenleyin ve hatalarını ayıklayın. Daha fazla bilgi edinmek için <DocsLink>belgelerimize</DocsLink> göz atın.",
-	"onboarding": "<strong>Bu çalışma alanındaki görev listeniz boş.</strong> Aşağıya bir görev yazarak başlayın. Nasıl başlayacağınızdan emin değil misiniz? Roo'nun sizin için neler yapabileceği hakkında daha fazla bilgiyi <DocsLink>belgelerde</DocsLink> okuyun.",
+	"about": "Roo Code, düzenleyicinizdeki bütün bir yapay zeka geliştirme ekibidir.",
+	"docs": "Daha fazla bilgi için <DocsLink>belgelerimize</DocsLink> göz atın.",
+	"onboarding": "Bu çalışma alanındaki görev listeniz boş.",
 	"rooTips": {
-		"boomerangTasks": {
-			"title": "Görev Orkestrasyonu",
-			"description": "Görevleri daha küçük, yönetilebilir parçalara ayırın."
-		},
-		"stickyModels": {
-			"title": "Yapışkan Modlar",
-			"description": "Her mod, en son kullandığınız modeli hatırlar"
-		},
-		"tools": {
-			"title": "Araçlar",
-			"description": "AI'nın web'e göz atarak, komutlar çalıştırarak ve daha fazlasını yaparak sorunları çözmesine izin verin."
-		},
 		"customizableModes": {
-			"title": "Özelleştirilebilir Modlar",
-			"description": "Kendi davranışları ve atanmış modelleri ile özelleştirilmiş kişilikler"
+			"title": "Özelleştirilebilir modlar",
+			"description": "Göreve odaklanan ve sonuç veren özel kişilikler."
+		},
+		"modelAgnostic": {
+			"title": "Kendi modelinizi getirin",
+			"description": "Kendi sağlayıcı anahtarınızı kullanın veya hatta yerel çıkarım yapın — ek ücret yok, kilitlenme yok, kısıtlama yok"
 		}
 	},
 	"selectMode": "Etkileşim modunu seçin",
@@ -108,7 +106,7 @@
 	"stopTts": "Metin okumayı durdur",
 	"typeMessage": "Bir mesaj yazın...",
 	"typeTask": "Görevinizi buraya yazın...",
-	"addContext": "Bağlam eklemek için @, mod değiştirmek için /",
+	"addContext": "Bağlam eklemek için @, komutlar için /",
 	"dragFiles": "dosyaları sürüklemek için shift tuşuna basılı tutun",
 	"dragFilesImages": "dosyaları/resimleri sürüklemek için shift tuşuna basılı tutun",
 	"enhancePromptDescription": "'İstemi geliştir' düğmesi, ek bağlam, açıklama veya yeniden ifade sağlayarak isteğinizi iyileştirmeye yardımcı olur. Buraya bir istek yazıp düğmeye tekrar tıklayarak nasıl çalıştığını görebilirsiniz.",
@@ -116,9 +114,11 @@
 		"title": "Modlar",
 		"marketplace": "Mod Pazaryeri",
 		"settings": "Mod Ayarları",
-		"description": "Roo'nun davranışını özelleştiren uzmanlaşmış kişilikler."
+		"description": "Roo'nun davranışını özelleştiren uzmanlaşmış kişilikler.",
+		"searchPlaceholder": "Modları ara...",
+		"noResults": "Sonuç bulunamadı"
 	},
-	"errorReadingFile": "Dosya okuma hatası:",
+	"errorReadingFile": "Dosya okuma hatası",
 	"noValidImages": "Hiçbir geçerli resim işlenmedi",
 	"separator": "Ayırıcı",
 	"edit": "Düzenle...",
@@ -137,11 +137,13 @@
 		"streamingFailed": "API Akışı Başarısız"
 	},
 	"checkpoint": {
-		"initial": "İlk Kontrol Noktası",
 		"regular": "Kontrol Noktası",
 		"initializingWarning": "Kontrol noktası hala başlatılıyor... Bu çok uzun sürerse, <settingsLink>ayarlar</settingsLink> bölümünden kontrol noktalarını devre dışı bırakabilir ve görevinizi yeniden başlatabilirsiniz.",
 		"menu": {
 			"viewDiff": "Farkları Görüntüle",
+			"more": "Daha fazla seçenek",
+			"viewDiffFromInit": "Tüm Değişiklikleri Görüntüle",
+			"viewDiffWithCurrent": "Bu Kontrol Noktasından Bu Yana Değişiklikleri Görüntüle",
 			"restore": "Kontrol Noktasını Geri Yükle",
 			"restoreFiles": "Dosyaları Geri Yükle",
 			"restoreFilesDescription": "Projenizin dosyalarını bu noktada alınan bir anlık görüntüye geri yükler.",
@@ -157,46 +159,73 @@
 		"wantsToFetch": "Roo mevcut göreve yardımcı olmak için ayrıntılı talimatlar almak istiyor"
 	},
 	"fileOperations": {
-		"wantsToRead": "Roo bu dosyayı okumak istiyor:",
-		"wantsToReadOutsideWorkspace": "Roo çalışma alanı dışındaki bu dosyayı okumak istiyor:",
-		"didRead": "Roo bu dosyayı okudu:",
-		"wantsToEdit": "Roo bu dosyayı düzenlemek istiyor:",
-		"wantsToEditOutsideWorkspace": "Roo çalışma alanı dışındaki bu dosyayı düzenlemek istiyor:",
-		"wantsToEditProtected": "Roo korumalı bir yapılandırma dosyasını düzenlemek istiyor:",
-		"wantsToCreate": "Roo yeni bir dosya oluşturmak istiyor:",
-		"wantsToSearchReplace": "Roo bu dosyada arama ve değiştirme yapmak istiyor:",
-		"didSearchReplace": "Roo bu dosyada arama ve değiştirme yaptı:",
-		"wantsToInsert": "Roo bu dosyaya içerik eklemek istiyor:",
-		"wantsToInsertWithLineNumber": "Roo bu dosyanın {{lineNumber}}. satırına içerik eklemek istiyor:",
-		"wantsToInsertAtEnd": "Roo bu dosyanın sonuna içerik eklemek istiyor:",
-		"wantsToReadAndXMore": "Roo bu dosyayı ve {{count}} tane daha okumak istiyor:",
-		"wantsToReadMultiple": "Roo birden fazla dosya okumak istiyor:",
-		"wantsToApplyBatchChanges": "Roo birden fazla dosyaya değişiklik uygulamak istiyor:"
+		"wantsToRead": "Roo bu dosyayı okumak istiyor",
+		"wantsToReadOutsideWorkspace": "Roo çalışma alanı dışındaki bu dosyayı okumak istiyor",
+		"didRead": "Roo bu dosyayı okudu",
+		"wantsToEdit": "Roo bu dosyayı düzenlemek istiyor",
+		"wantsToEditOutsideWorkspace": "Roo çalışma alanı dışındaki bu dosyayı düzenlemek istiyor",
+		"wantsToEditProtected": "Roo korumalı bir yapılandırma dosyasını düzenlemek istiyor",
+		"wantsToCreate": "Roo yeni bir dosya oluşturmak istiyor",
+		"wantsToSearchReplace": "Roo bu dosyada arama ve değiştirme yapmak istiyor",
+		"didSearchReplace": "Roo bu dosyada arama ve değiştirme yaptı",
+		"wantsToInsert": "Roo bu dosyaya içerik eklemek istiyor",
+		"wantsToInsertWithLineNumber": "Roo bu dosyanın {{lineNumber}}. satırına içerik eklemek istiyor",
+		"wantsToInsertAtEnd": "Roo bu dosyanın sonuna içerik eklemek istiyor",
+		"wantsToReadAndXMore": "Roo bu dosyayı ve {{count}} tane daha okumak istiyor",
+		"wantsToReadMultiple": "Roo birden fazla dosya okumak istiyor",
+		"wantsToApplyBatchChanges": "Roo birden fazla dosyaya değişiklik uygulamak istiyor",
+		"wantsToGenerateImage": "Roo bir görsel oluşturmak istiyor",
+		"wantsToGenerateImageOutsideWorkspace": "Roo çalışma alanının dışında bir görsel oluşturmak istiyor",
+		"wantsToGenerateImageProtected": "Roo korumalı bir konumda görsel oluşturmak istiyor",
+		"didGenerateImage": "Roo bir görsel oluşturdu"
 	},
 	"directoryOperations": {
-		"wantsToViewTopLevel": "Roo bu dizindeki üst düzey dosyaları görüntülemek istiyor:",
-		"didViewTopLevel": "Roo bu dizindeki üst düzey dosyaları görüntüledi:",
-		"wantsToViewRecursive": "Roo bu dizindeki tüm dosyaları özyinelemeli olarak görüntülemek istiyor:",
-		"didViewRecursive": "Roo bu dizindeki tüm dosyaları özyinelemeli olarak görüntüledi:",
-		"wantsToViewDefinitions": "Roo bu dizinde kullanılan kaynak kod tanımlama isimlerini görüntülemek istiyor:",
-		"didViewDefinitions": "Roo bu dizinde kullanılan kaynak kod tanımlama isimlerini görüntüledi:",
-		"wantsToSearch": "Roo bu dizinde <code>{{regex}}</code> için arama yapmak istiyor:",
-		"didSearch": "Roo bu dizinde <code>{{regex}}</code> için arama yaptı:",
-		"wantsToSearchOutsideWorkspace": "Roo bu dizinde (çalışma alanı dışında) <code>{{regex}}</code> için arama yapmak istiyor:",
-		"didSearchOutsideWorkspace": "Roo bu dizinde (çalışma alanı dışında) <code>{{regex}}</code> için arama yaptı:",
-		"wantsToViewTopLevelOutsideWorkspace": "Roo bu dizindeki (çalışma alanı dışında) üst düzey dosyaları görüntülemek istiyor:",
-		"didViewTopLevelOutsideWorkspace": "Roo bu dizindeki (çalışma alanı dışında) üst düzey dosyaları görüntüledi:",
-		"wantsToViewRecursiveOutsideWorkspace": "Roo bu dizindeki (çalışma alanı dışında) tüm dosyaları özyinelemeli olarak görüntülemek istiyor:",
-		"didViewRecursiveOutsideWorkspace": "Roo bu dizindeki (çalışma alanı dışında) tüm dosyaları özyinelemeli olarak görüntüledi:",
-		"wantsToViewDefinitionsOutsideWorkspace": "Roo bu dizinde (çalışma alanı dışında) kullanılan kaynak kod tanımlama isimlerini görüntülemek istiyor:",
-		"didViewDefinitionsOutsideWorkspace": "Roo bu dizinde (çalışma alanı dışında) kullanılan kaynak kod tanımlama isimlerini görüntüledi:"
+		"wantsToViewTopLevel": "Roo bu dizindeki üst düzey dosyaları görüntülemek istiyor",
+		"didViewTopLevel": "Roo bu dizindeki üst düzey dosyaları görüntüledi",
+		"wantsToViewRecursive": "Roo bu dizindeki tüm dosyaları özyinelemeli olarak görüntülemek istiyor",
+		"didViewRecursive": "Roo bu dizindeki tüm dosyaları özyinelemeli olarak görüntüledi",
+		"wantsToViewDefinitions": "Roo bu dizinde kullanılan kaynak kod tanımlama isimlerini görüntülemek istiyor",
+		"didViewDefinitions": "Roo bu dizinde kullanılan kaynak kod tanımlama isimlerini görüntüledi",
+		"wantsToSearch": "Roo bu dizinde <code>{{regex}}</code> için arama yapmak istiyor",
+		"didSearch": "Roo bu dizinde <code>{{regex}}</code> için arama yaptı",
+		"wantsToSearchOutsideWorkspace": "Roo bu dizinde (çalışma alanı dışında) <code>{{regex}}</code> için arama yapmak istiyor",
+		"didSearchOutsideWorkspace": "Roo bu dizinde (çalışma alanı dışında) <code>{{regex}}</code> için arama yaptı",
+		"wantsToViewTopLevelOutsideWorkspace": "Roo bu dizindeki (çalışma alanı dışında) üst düzey dosyaları görüntülemek istiyor",
+		"didViewTopLevelOutsideWorkspace": "Roo bu dizindeki (çalışma alanı dışında) üst düzey dosyaları görüntüledi",
+		"wantsToViewRecursiveOutsideWorkspace": "Roo bu dizindeki (çalışma alanı dışında) tüm dosyaları özyinelemeli olarak görüntülemek istiyor",
+		"didViewRecursiveOutsideWorkspace": "Roo bu dizindeki (çalışma alanı dışında) tüm dosyaları özyinelemeli olarak görüntüledi",
+		"wantsToViewDefinitionsOutsideWorkspace": "Roo bu dizinde (çalışma alanı dışında) kullanılan kaynak kod tanımlama isimlerini görüntülemek istiyor",
+		"didViewDefinitionsOutsideWorkspace": "Roo bu dizinde (çalışma alanı dışında) kullanılan kaynak kod tanımlama isimlerini görüntüledi"
 	},
 	"commandOutput": "Komut Çıktısı",
+	"commandExecution": {
+		"running": "Çalışıyor",
+		"abort": "İptal Et",
+		"pid": "PID: {{pid}}",
+		"exitStatus": "{{exitCode}} durumuyla çıkıldı",
+		"manageCommands": "Komut İzinlerini Yönet",
+		"commandManagementDescription": "Komut izinlerini yönetin: Otomatik yürütmeye izin vermek için ✓'e, yürütmeyi reddetmek için ✗'e tıklayın. Desenler açılıp kapatılabilir veya listelerden kaldırılabilir. <settingsLink>Tüm ayarları görüntüle</settingsLink>",
+		"addToAllowed": "İzin verilenler listesine ekle",
+		"removeFromAllowed": "İzin verilenler listesinden kaldır",
+		"addToDenied": "Reddedilenler listesine ekle",
+		"removeFromDenied": "Reddedilenler listesinden kaldır",
+		"abortCommand": "Komut yürütmeyi iptal et",
+		"expandOutput": "Çıktıyı genişlet",
+		"collapseOutput": "Çıktıyı daralt",
+		"expandManagement": "Komut yönetimi bölümünü genişlet",
+		"collapseManagement": "Komut yönetimi bölümünü daralt"
+	},
 	"response": "Yanıt",
 	"arguments": "Argümanlar",
+	"text": {
+		"rooSaid": "Roo dedi"
+	},
+	"feedback": {
+		"youSaid": "Dediniz ki"
+	},
 	"mcp": {
-		"wantsToUseTool": "Roo {{serverName}} MCP sunucusunda bir araç kullanmak istiyor:",
-		"wantsToAccessResource": "Roo {{serverName}} MCP sunucusundaki bir kaynağa erişmek istiyor:"
+		"wantsToUseTool": "Roo {{serverName}} MCP sunucusunda bir araç kullanmak istiyor",
+		"wantsToAccessResource": "Roo {{serverName}} MCP sunucusundaki bir kaynağa erişmek istiyor"
 	},
 	"modes": {
 		"wantsToSwitch": "Roo <code>{{mode}}</code> moduna geçmek istiyor",
@@ -205,7 +234,7 @@
 		"didSwitchWithReason": "Roo <code>{{mode}}</code> moduna geçti çünkü: {{reason}}"
 	},
 	"subtasks": {
-		"wantsToCreate": "Roo <code>{{mode}}</code> modunda yeni bir alt görev oluşturmak istiyor:",
+		"wantsToCreate": "Roo <code>{{mode}}</code> modunda yeni bir alt görev oluşturmak istiyor",
 		"wantsToFinish": "Roo bu alt görevi bitirmek istiyor",
 		"newTaskContent": "Alt Görev Talimatları",
 		"completionContent": "Alt Görev Tamamlandı",
@@ -214,19 +243,29 @@
 		"completionInstructions": "Alt görev tamamlandı! Sonuçları inceleyebilir ve düzeltmeler veya sonraki adımlar önerebilirsiniz. Her şey iyi görünüyorsa, sonucu üst göreve döndürmek için onaylayın."
 	},
 	"questions": {
-		"hasQuestion": "Roo'nun bir sorusu var:"
+		"hasQuestion": "Roo'nun bir sorusu var"
 	},
 	"taskCompleted": "Görev Tamamlandı",
 	"powershell": {
 		"issues": "Windows PowerShell ile ilgili sorunlar yaşıyor gibi görünüyorsunuz, lütfen şu konuya bakın"
 	},
 	"autoApprove": {
-		"title": "Otomatik-onay:",
+		"tooltipManage": "Otomatik onay ayarlarını yönet",
+		"tooltipStatus": "Otomatik onay şunlar için etkinleştirildi: {{toggles}}",
+		"title": "Otomatik onayla",
+		"toggle": "Otomatik onayı aç/kapat",
+		"all": "Tümü",
 		"none": "Hiçbiri",
-		"description": "Otomatik onay, Roo Code'un izin istemeden işlemler gerçekleştirmesine olanak tanır. Yalnızca tamamen güvendiğiniz eylemler için etkinleştirin. Daha detaylı yapılandırma <settingsLink>Ayarlar</settingsLink>'da mevcuttur.",
-		"selectOptionsFirst": "Otomatik onayı etkinleştirmek için aşağıdan en az bir seçenek belirleyin",
-		"toggleAriaLabel": "Otomatik onayı değiştir",
-		"disabledAriaLabel": "Otomatik onay devre dışı - önce seçenekleri belirleyin"
+		"description": "İzin istemeden bu eylemleri gerçekleştirin. Bunu yalnızca tamamen güvendiğiniz eylemler için etkinleştirin.",
+		"selectOptionsFirst": "Otomatik onayı etkinleştirmek için aşağıdan en az bir seçenek seçin",
+		"toggleAriaLabel": "Otomatik onayı aç/kapat",
+		"disabledAriaLabel": "Otomatik onay devre dışı - önce seçenekleri seçin",
+		"triggerLabelOff": "Otomatik onay kapalı",
+		"triggerLabelOffShort": "Kapalı",
+		"triggerLabel_zero": "0 otomatik onaylandı",
+		"triggerLabel_one": "1 otomatik onaylandı",
+		"triggerLabel_other": "{{count}} otomatik onaylandı",
+		"triggerLabelAll": "YOLO"
 	},
 	"reasoning": {
 		"thinking": "Düşünüyor",
@@ -245,16 +284,30 @@
 	},
 	"announcement": {
 		"title": "🎉 Roo Code {{version}} Yayınlandı",
-		"description": "Roo Code {{version}}, geliştirme iş akışınızı geliştirmek için güçlü yeni özellikler ve önemli iyileştirmeler getiriyor.",
-		"whatsNew": "Yenilikler",
-		"feature1": "<bold>Kod Tabanı İndeksleme Deneysel Aşamadan Mezun Oldu</bold>: Tam kod tabanı indeksleme artık kararlı ve geliştirilmiş arama ve bağlam anlayışı ile üretim kullanımına hazır.",
-		"feature2": "<bold>Yeni Yapılacaklar Listesi Özelliği</bold>: Görevlerinizi yolunda tutmak için entegre yapılacaklar yönetimi ile organize kalın ve geliştirme hedeflerinize odaklanın.",
-		"feature3": "<bold>Geliştirilmiş Mimar'dan Kod'a Geçişler</bold>: Mimar modunda planlamadan Kod modunda uygulamaya sorunsuz aktarımlar.",
-		"hideButton": "Duyuruyu gizle",
-		"detailsDiscussLinks": "<discordLink>Discord</discordLink> ve <redditLink>Reddit</redditLink>'te daha fazla ayrıntı alın ve tartışmalara katılın 🚀"
+		"stealthModel": {
+			"feature": "<bold>Sınırlı süre ÜCRETSİZ gizli model</bold> - Code Supernova: Artık <bold>1M token bağlam penceresi</bold> ile yükseltildi! Görüntü girişlerini destekleyen çok amaçlı acentik kodlama modeli, Roo Code Cloud üzerinden kullanılabilir.",
+			"note": "(Not: istemler ve tamamlamalar model yaratıcısı tarafından kaydedilir ve modeli geliştirmek için kullanılır)",
+			"connectButton": "Roo Code Cloud'a bağlan",
+			"selectModel": "Başlamak için Ayarlar'da Roo Code Cloud sağlayıcısından <code>roo/code-supernova</code>'yı seçin.",
+			"goToSettingsButton": "Ayarlar'a Git"
+		},
+		"release": {
+			"heading": "Bu sürümdeki yenilikler:",
+			"browserUse": "Browser Use 2.0, kalıcı oturumlar, daha net geri bildirim, özel tarayıcı paneli ve daha doğal eylem açıklamalarıyla sohbet içi tarayıcı deneyimini yükseltir",
+			"cloudPaid": "Roo Code Cloud sağlayıcısı artık ücretli modeller sunuyor: kredi satın alın ve bunları hem bulut ajanları hem de çıkarım için kullanın"
+		},
+		"cloudAgents": {
+			"heading": "Cloud'daki yenilikler:",
+			"specialized": "<bold>Explainer</bold>, <bold>Planner</bold> ve <bold>Coder</bold> tanıtımı - iş akışlarını geliştirmek için üç özel bulut ajanı.",
+			"description": "Ajanlar bulutta birlikte çalışır ve web'den veya Slack üzerinden tetiklenebilir.",
+			"tryButton": "Bulut Ajanlarını Dene"
+		},
+		"careers": "Ayrıca, <careersLink>işe alım yapıyoruz!</careersLink>",
+		"socialLinks": "Bize <xLink>X</xLink>, <discordLink>Discord</discordLink>, veya <redditLink>r/RooCode</redditLink>'da katılın 🚀"
 	},
 	"browser": {
-		"rooWantsToUse": "Roo tarayıcıyı kullanmak istiyor:",
+		"session": "Tarayıcı Oturumu",
+		"rooWantsToUse": "Roo tarayıcıyı kullanmak istiyor",
 		"consoleLogs": "Konsol Kayıtları",
 		"noNewLogs": "(Yeni kayıt yok)",
 		"screenshot": "Tarayıcı ekran görüntüsü",
@@ -266,12 +319,14 @@
 		},
 		"sessionStarted": "Tarayıcı Oturumu Başlatıldı",
 		"actions": {
-			"title": "Tarayıcı İşlemi: ",
+			"title": "Tarayıcı Eylemi: ",
 			"launch": "{{url}} adresinde tarayıcı başlat",
 			"click": "Tıkla ({{coordinate}})",
 			"type": "Yaz \"{{text}}\"",
+			"press": "{{key}} tuşuna bas",
 			"scrollDown": "Aşağı kaydır",
 			"scrollUp": "Yukarı kaydır",
+			"hover": "Üzerine gel ({{coordinate}})",
 			"close": "Tarayıcıyı kapat"
 		}
 	},
@@ -279,8 +334,6 @@
 		"tooltips": {
 			"expand": "Kod bloğunu genişlet",
 			"collapse": "Kod bloğunu daralt",
-			"enable_wrap": "Satır kaydırmayı etkinleştir",
-			"disable_wrap": "Satır kaydırmayı devre dışı bırak",
 			"copy_code": "Kodu kopyala"
 		}
 	},
@@ -296,11 +349,16 @@
 			"title": "Otomatik Onaylanan İstek Limiti Aşıldı",
 			"description": "Roo, {{count}} API isteği/istekleri için otomatik onaylanan limite ulaştı. Sayacı sıfırlamak ve göreve devam etmek istiyor musunuz?",
 			"button": "Sıfırla ve Devam Et"
+		},
+		"autoApprovedCostLimitReached": {
+			"title": "Otomatik Onaylanan Maliyet Sınırına Ulaşıldı",
+			"description": "Roo otomatik olarak onaylanmış ${{count}} maliyet sınırına ulaştı. Maliyeti sıfırlamak ve göreve devam etmek ister misiniz?",
+			"button": "Sıfırla ve Devam Et"
 		}
 	},
 	"codebaseSearch": {
-		"wantsToSearch": "Roo kod tabanında <code>{{query}}</code> aramak istiyor:",
-		"wantsToSearchWithPath": "Roo <code>{{path}}</code> içinde kod tabanında <code>{{query}}</code> aramak istiyor:",
+		"wantsToSearch": "Roo kod tabanında <code>{{query}}</code> aramak istiyor",
+		"wantsToSearchWithPath": "Roo <code>{{path}}</code> içinde kod tabanında <code>{{query}}</code> aramak istiyor",
 		"didSearch_one": "1 sonuç bulundu",
 		"didSearch_other": "{{count}} sonuç bulundu",
 		"resultTooltip": "Benzerlik puanı: {{score}} (dosyayı açmak için tıklayın)"
@@ -324,11 +382,55 @@
 		"ariaLabel": "Sürüm {{version}} - Sürüm notlarını görüntülemek için tıklayın"
 	},
 	"rooCloudCTA": {
-		"title": "Roo Code Cloud yakında geliyor!",
+		"title": "Roo Code Cloud gelişiyor!",
 		"description": "Bulutta uzak ajanlar çalıştırın, görevlerinize her yerden erişin, başkalarıyla işbirliği yapın ve daha fazlası.",
-		"joinWaitlist": "Erken erişim için bekleme listesine katılın."
+		"joinWaitlist": "En son güncellemeleri almak için kaydolun."
 	},
 	"editMessage": {
 		"placeholder": "Mesajını düzenle..."
+	},
+	"command": {
+		"triggerDescription": "{{name}} komutunu tetikle"
+	},
+	"slashCommands": {
+		"tooltip": "Eğik çizgi komutlarını yönet",
+		"title": "Eğik Çizgi Komutları",
+		"description": "Yerleşik eğik çizgi komutlarını kullanın veya sık kullanılan komut istemleri ve iş akışlarına hızlı erişim için özel komutlar oluşturun. <DocsLink>Belgeler</DocsLink>",
+		"manageCommands": "Ayarlarda eğik çizgi komutlarını yönet",
+		"builtInCommands": "Yerleşik Komutlar",
+		"globalCommands": "Genel Komutlar",
+		"workspaceCommands": "Çalışma Alanı Komutları",
+		"globalCommand": "Genel komut",
+		"editCommand": "Komutu düzenle",
+		"deleteCommand": "Komutu sil",
+		"newGlobalCommandPlaceholder": "Yeni genel komut...",
+		"newWorkspaceCommandPlaceholder": "Yeni çalışma alanı komutu...",
+		"deleteDialog": {
+			"title": "Komutu Sil",
+			"description": "\"{{name}}\" komutunu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+			"cancel": "İptal",
+			"confirm": "Sil"
+		}
+	},
+	"contextMenu": {
+		"noResults": "Sonuç yok",
+		"problems": "Sorunlar",
+		"terminal": "Terminal",
+		"url": "İçeriği getirmek için URL'yi yapıştırın"
+	},
+	"queuedMessages": {
+		"title": "Sıradaki Mesajlar",
+		"clickToEdit": "Mesajı düzenlemek için tıkla"
+	},
+	"slashCommand": {
+		"wantsToRun": "Roo bir slash komutu çalıştırmak istiyor",
+		"didRun": "Roo bir slash komutu çalıştırdı"
+	},
+	"todo": {
+		"partial": "{{total}} yapılacaklar listesinden {{completed}} tanesi tamamlandı",
+		"complete": "{{total}} yapılacaklar listesi tamamlandı",
+		"updated": "Yapılacaklar listesi güncellendi",
+		"completed": "Tamamlandı",
+		"started": "Başladı"
 	}
 }

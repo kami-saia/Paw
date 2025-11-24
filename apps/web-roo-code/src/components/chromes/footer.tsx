@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { ChevronDown } from "lucide-react"
-import { FaBluesky, FaDiscord, FaGithub, FaLinkedin, FaReddit, FaTiktok, FaXTwitter, FaYoutube } from "react-icons/fa6"
+import { useTheme } from "next-themes"
 
 import { EXTERNAL_LINKS, INTERNAL_LINKS } from "@/lib/constants"
 import { useLogoSrc } from "@/lib/hooks/use-logo-src"
@@ -12,14 +12,21 @@ import { ScrollButton } from "@/components/ui"
 
 export function Footer() {
 	const [privacyDropdownOpen, setPrivacyDropdownOpen] = useState(false)
+	const [cloudDropdownOpen, setCloudDropdownOpen] = useState(false)
 	const dropdownRef = useRef<HTMLDivElement>(null)
+	const cloudDropdownRef = useRef<HTMLDivElement>(null)
 	const logoSrc = useLogoSrc()
+	const { resolvedTheme } = useTheme()
 
 	// Close dropdown when clicking outside
 	useEffect(() => {
 		function handleClickOutside(event: MouseEvent) {
-			if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+			const target = event.target as Node
+			if (dropdownRef.current && !dropdownRef.current.contains(target)) {
 				setPrivacyDropdownOpen(false)
+			}
+			if (cloudDropdownRef.current && !cloudDropdownRef.current.contains(target)) {
+				setCloudDropdownOpen(false)
 			}
 		}
 
@@ -39,72 +46,21 @@ export function Footer() {
 						<p className="max-w-md text-sm leading-6 text-muted-foreground md:pr-16 lg:pr-32">
 							Empowering developers to build better software faster with AI-powered tools and insights.
 						</p>
-						<div className="flex space-x-4">
-							<a
-								href={EXTERNAL_LINKS.GITHUB}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="text-muted-foreground transition-colors hover:text-foreground">
-								<FaGithub className="h-6 w-6" />
-								<span className="sr-only">GitHub</span>
-							</a>
-							<a
-								href={EXTERNAL_LINKS.DISCORD}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="text-muted-foreground transition-colors hover:text-foreground">
-								<FaDiscord className="h-6 w-6" />
-								<span className="sr-only">Discord</span>
-							</a>
-							<a
-								href={EXTERNAL_LINKS.REDDIT}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="text-muted-foreground transition-colors hover:text-foreground">
-								<FaReddit className="h-6 w-6" />
-								<span className="sr-only">Reddit</span>
-							</a>
-							<a
-								href={EXTERNAL_LINKS.X}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="text-muted-foreground transition-colors hover:text-foreground">
-								<FaXTwitter className="h-6 w-6" />
-								<span className="sr-only">X</span>
-							</a>
-							<a
-								href={EXTERNAL_LINKS.LINKEDIN}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="text-muted-foreground transition-colors hover:text-foreground">
-								<FaLinkedin className="h-6 w-6" />
-								<span className="sr-only">LinkedIn</span>
-							</a>
-							<a
-								href={EXTERNAL_LINKS.BLUESKY}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="text-muted-foreground transition-colors hover:text-foreground">
-								<FaBluesky className="h-6 w-6" />
-								<span className="sr-only">Bluesky</span>
-							</a>
-							<a
-								href={EXTERNAL_LINKS.TIKTOK}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="text-muted-foreground transition-colors hover:text-foreground">
-								<FaTiktok className="h-6 w-6" />
-								<span className="sr-only">TikTok</span>
-							</a>
-							<a
-								href={EXTERNAL_LINKS.YOUTUBE}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="text-muted-foreground transition-colors hover:text-foreground">
-								<FaYoutube className="h-6 w-6" />
-								<span className="sr-only">YouTube</span>
-							</a>
-						</div>
+
+						{/* Made with Roo Code */}
+						<a
+							href="https://roocode.com"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="inline-flex items-center space-x-2 group">
+							<Image
+								src={resolvedTheme === "light" ? "/RooCode-Badge-blk.svg" : "/RooCode-Badge-white.svg"}
+								alt="Made with Roo Code"
+								width={120}
+								height={40}
+								className="h-8 w-auto opacity-70 transition-opacity group-hover:opacity-100"
+							/>
+						</a>
 					</div>
 
 					<div className="mt-16 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0">
@@ -114,10 +70,76 @@ export function Footer() {
 								<ul className="mt-6 space-y-4">
 									<li>
 										<ScrollButton
-											targetId="features"
+											targetId="product"
 											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
 											Features
 										</ScrollButton>
+									</li>
+									<li>
+										<div className="relative z-10" ref={cloudDropdownRef}>
+											<button
+												onClick={() => setCloudDropdownOpen(!cloudDropdownOpen)}
+												className="flex items-center text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground"
+												aria-expanded={cloudDropdownOpen}
+												aria-haspopup="true">
+												<span>Cloud Agents</span>
+												<ChevronDown
+													className={`ml-1 h-4 w-4 transition-transform ${cloudDropdownOpen ? "rotate-180" : ""}`}
+												/>
+											</button>
+
+											{cloudDropdownOpen && (
+												<div className="absolute z-50 mt-2 w-44 origin-top-left scale-95 rounded-md border border-border bg-background shadow-lg ring-1 ring-black ring-opacity-5 transition-all duration-100 ease-out data-[state=open]:scale-100 max-xs:right-0 max-xs:origin-top-right xs:left-0">
+													<div className="flex flex-col gap-1 p-2 text-sm text-muted-foreground">
+														<Link
+															href="/cloud"
+															onClick={() => setCloudDropdownOpen(false)}
+															className="rounded-md px-3 py-2 transition-colors hover:bg-accent/50 hover:text-foreground">
+															Cloud
+														</Link>
+														<Link
+															href="/reviewer"
+															onClick={() => setCloudDropdownOpen(false)}
+															className="rounded-md px-3 py-2 transition-colors hover:bg-accent/50 hover:text-foreground">
+															PR Reviewer
+														</Link>
+														<Link
+															href="/pr-fixer"
+															onClick={() => setCloudDropdownOpen(false)}
+															className="rounded-md px-3 py-2 transition-colors hover:bg-accent/50 hover:text-foreground">
+															PR Fixer
+														</Link>
+													</div>
+												</div>
+											)}
+										</div>
+									</li>
+									<li>
+										<a
+											href={EXTERNAL_LINKS.DOCUMENTATION}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
+											Docs
+										</a>
+									</li>
+									<li>
+										<a
+											href={EXTERNAL_LINKS.CHANGELOG}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
+											Changelog
+										</a>
+									</li>
+									<li>
+										<a
+											href={EXTERNAL_LINKS.TESTIMONIALS}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
+											Testimonials
+										</a>
 									</li>
 									<li>
 										<Link
@@ -132,32 +154,7 @@ export function Footer() {
 											target="_blank"
 											rel="noopener noreferrer"
 											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Security
-										</a>
-									</li>
-									<li>
-										<ScrollButton
-											targetId="testimonials"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Testimonials
-										</ScrollButton>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.INTEGRATIONS}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Integrations
-										</a>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.CHANGELOG}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Changelog
+											Security Center
 										</a>
 									</li>
 								</ul>
@@ -167,11 +164,20 @@ export function Footer() {
 								<ul className="mt-6 space-y-4">
 									<li>
 										<a
-											href={EXTERNAL_LINKS.DOCUMENTATION}
+											href={EXTERNAL_LINKS.EVALS}
 											target="_blank"
 											rel="noopener noreferrer"
 											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Documentation
+											Evals
+										</a>
+									</li>
+									<li>
+										<a
+											href={EXTERNAL_LINKS.FAQ}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
+											FAQ
 										</a>
 									</li>
 									<li>
@@ -183,40 +189,6 @@ export function Footer() {
 											Tutorials
 										</a>
 									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.COMMUNITY}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Community
-										</a>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.DISCORD}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Discord
-										</a>
-									</li>
-									<li>
-										<a
-											href={EXTERNAL_LINKS.REDDIT}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											Reddit
-										</a>
-									</li>
-								</ul>
-							</div>
-						</div>
-						<div className="md:grid md:grid-cols-2 md:gap-8">
-							<div>
-								<h3 className="text-sm font-semibold uppercase leading-6 text-foreground">Support</h3>
-								<ul className="mt-6 space-y-4">
 									<li>
 										<a
 											href={EXTERNAL_LINKS.ISSUES}
@@ -236,15 +208,19 @@ export function Footer() {
 										</a>
 									</li>
 									<li>
-										<ScrollButton
-											targetId="faq"
+										<a
+											href={EXTERNAL_LINKS.OFFICE_HOURS_PODCAST}
+											target="_blank"
+											rel="noopener noreferrer"
 											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
-											FAQ
-										</ScrollButton>
+											Office Hours Podcast
+										</a>
 									</li>
 								</ul>
 							</div>
-							<div className="mt-10 md:mt-0">
+						</div>
+						<div className="md:grid md:grid-cols-2 md:gap-8">
+							<div>
 								<h3 className="text-sm font-semibold uppercase leading-6 text-foreground">Company</h3>
 								<ul className="mt-6 space-y-4">
 									<li>
@@ -306,6 +282,97 @@ export function Footer() {
 												</div>
 											)}
 										</div>
+									</li>
+									<li>
+										<Link
+											href="/legal/cookies"
+											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
+											Cookie Policy
+										</Link>
+									</li>
+									<li>
+										<Link
+											href="/legal/subprocessors"
+											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
+											Subprocessors
+										</Link>
+									</li>
+								</ul>
+							</div>
+							<div className="mt-10 md:mt-0">
+								<h3 className="text-sm font-semibold uppercase leading-6 text-foreground">Connect</h3>
+								<ul className="mt-6 space-y-4">
+									<li>
+										<a
+											href={EXTERNAL_LINKS.GITHUB}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
+											GitHub
+										</a>
+									</li>
+									<li>
+										<a
+											href={EXTERNAL_LINKS.DISCORD}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
+											Discord
+										</a>
+									</li>
+									<li>
+										<a
+											href={EXTERNAL_LINKS.REDDIT}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
+											Reddit
+										</a>
+									</li>
+									<li>
+										<a
+											href={EXTERNAL_LINKS.X}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
+											X / Twitter
+										</a>
+									</li>
+									<li>
+										<a
+											href={EXTERNAL_LINKS.LINKEDIN}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
+											LinkedIn
+										</a>
+									</li>
+									<li>
+										<a
+											href={EXTERNAL_LINKS.BLUESKY}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
+											Bluesky
+										</a>
+									</li>
+									<li>
+										<a
+											href={EXTERNAL_LINKS.TIKTOK}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
+											TikTok
+										</a>
+									</li>
+									<li>
+										<a
+											href={EXTERNAL_LINKS.YOUTUBE}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground">
+											YouTube
+										</a>
 									</li>
 								</ul>
 							</div>

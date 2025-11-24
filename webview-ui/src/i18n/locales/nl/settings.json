@@ -28,10 +28,15 @@
 		"notifications": "Meldingen",
 		"contextManagement": "Context",
 		"terminal": "Terminal",
+		"slashCommands": "Slash-opdrachten",
 		"prompts": "Prompts",
+		"ui": "UI",
 		"experimental": "Experimenteel",
 		"language": "Taal",
 		"about": "Over Roo Code"
+	},
+	"slashCommands": {
+		"description": "Beheer je slash-commando's om snel aangepaste workflows en acties uit te voeren. <DocsLink>Meer informatie</DocsLink>"
 	},
 	"prompts": {
 		"description": "Configureer ondersteuningsprompts die worden gebruikt voor snelle acties zoals het verbeteren van prompts, het uitleggen van code en het oplossen van problemen. Deze prompts helpen Roo om betere ondersteuning te bieden voor veelvoorkomende ontwikkelingstaken."
@@ -47,6 +52,12 @@
 		"geminiProvider": "Gemini",
 		"geminiApiKeyLabel": "API-sleutel:",
 		"geminiApiKeyPlaceholder": "Voer uw Gemini API-sleutel in",
+		"vercelAiGatewayProvider": "Vercel AI Gateway",
+		"vercelAiGatewayApiKeyLabel": "API-sleutel",
+		"vercelAiGatewayApiKeyPlaceholder": "Voer uw Vercel AI Gateway API-sleutel in",
+		"openRouterProvider": "OpenRouter",
+		"openRouterApiKeyLabel": "OpenRouter API-sleutel",
+		"openRouterApiKeyPlaceholder": "Voer uw OpenRouter API-sleutel in",
 		"mistralProvider": "Mistral",
 		"mistralApiKeyLabel": "API-sleutel:",
 		"mistralApiKeyPlaceholder": "Voer uw Mistral API-sleutel in",
@@ -113,9 +124,11 @@
 			"modelDimensionRequired": "Modelafmeting is vereist",
 			"geminiApiKeyRequired": "Gemini API-sleutel is vereist",
 			"mistralApiKeyRequired": "Mistral API-sleutel is vereist",
+			"vercelAiGatewayApiKeyRequired": "Vercel AI Gateway API-sleutel is vereist",
 			"ollamaBaseUrlRequired": "Ollama basis-URL is vereist",
 			"baseUrlRequired": "Basis-URL is vereist",
-			"modelDimensionMinValue": "Modelafmeting moet groter zijn dan 0"
+			"modelDimensionMinValue": "Modelafmeting moet groter zijn dan 0",
+			"openRouterApiKeyRequired": "OpenRouter API-sleutel is vereist"
 		},
 		"advancedConfigLabel": "Geavanceerde configuratie",
 		"searchMinScoreLabel": "Zoekscore drempel",
@@ -126,7 +139,9 @@
 		"resetToDefault": "Reset naar standaard"
 	},
 	"autoApprove": {
+		"toggleShortcut": "U kunt een globale sneltoets voor deze instelling configureren <SettingsLink>in de voorkeuren van uw IDE</SettingsLink>.",
 		"description": "Sta Roo toe om automatisch handelingen uit te voeren zonder goedkeuring. Schakel deze instellingen alleen in als je de AI volledig vertrouwt en de bijbehorende beveiligingsrisico's begrijpt.",
+		"enabled": "Auto-goedkeuren ingeschakeld",
 		"toggleAriaLabel": "Automatisch goedkeuren in-/uitschakelen",
 		"disabledAriaLabel": "Automatisch goedkeuren uitgeschakeld - selecteer eerst opties",
 		"readOnly": {
@@ -197,7 +212,14 @@
 			"description": "Voer automatisch dit aantal API-verzoeken uit voordat om goedkeuring wordt gevraagd om door te gaan met de taak.",
 			"unlimited": "Onbeperkt"
 		},
-		"selectOptionsFirst": "Selecteer ten minste één optie hieronder om automatische goedkeuring in te schakelen"
+		"selectOptionsFirst": "Selecteer ten minste één optie hieronder om automatische goedkeuring in te schakelen",
+		"apiCostLimit": {
+			"title": "Max kosten",
+			"unlimited": "Onbeperkt"
+		},
+		"maxLimits": {
+			"description": "Automatisch verzoeken indienen tot aan deze limieten voordat om goedkeuring wordt gevraagd om door te gaan."
+		}
 	},
 	"providers": {
 		"providerDocumentation": "{{provider}} documentatie",
@@ -225,6 +247,8 @@
 		"awsCustomArnDesc": "Zorg ervoor dat de regio in de ARN overeenkomt met je geselecteerde AWS-regio hierboven.",
 		"openRouterApiKey": "OpenRouter API-sleutel",
 		"getOpenRouterApiKey": "OpenRouter API-sleutel ophalen",
+		"vercelAiGatewayApiKey": "Vercel AI Gateway API-sleutel",
+		"getVercelAiGatewayApiKey": "Vercel AI Gateway API-sleutel ophalen",
 		"apiKeyStorageNotice": "API-sleutels worden veilig opgeslagen in de geheime opslag van VSCode",
 		"glamaApiKey": "Glama API-sleutel",
 		"getGlamaApiKey": "Glama API-sleutel ophalen",
@@ -245,20 +269,48 @@
 			"error": "Kan modellenlijst niet vernieuwen. Probeer het opnieuw."
 		},
 		"getRequestyApiKey": "Requesty API-sleutel ophalen",
+		"getRequestyBaseUrl": "Basis-URL",
+		"requestyUseCustomBaseUrl": "Gebruik aangepaste basis-URL",
 		"openRouterTransformsText": "Comprimeer prompts en berichtreeksen tot de contextgrootte (<a>OpenRouter Transforms</a>)",
 		"anthropicApiKey": "Anthropic API-sleutel",
 		"getAnthropicApiKey": "Anthropic API-sleutel ophalen",
 		"anthropicUseAuthToken": "Anthropic API-sleutel als Authorization-header doorgeven in plaats van X-Api-Key",
+		"anthropic1MContextBetaLabel": "1M contextvenster inschakelen (bèta)",
+		"anthropic1MContextBetaDescription": "Breidt het contextvenster uit tot 1 miljoen tokens voor Claude Sonnet 4",
+		"awsBedrock1MContextBetaLabel": "1M contextvenster inschakelen (bèta)",
+		"awsBedrock1MContextBetaDescription": "Breidt het contextvenster uit tot 1 miljoen tokens voor Claude Sonnet 4",
+		"basetenApiKey": "Baseten API-sleutel",
+		"getBasetenApiKey": "Baseten API-sleutel verkrijgen",
+		"cerebrasApiKey": "Cerebras API-sleutel",
+		"getCerebrasApiKey": "Cerebras API-sleutel verkrijgen",
 		"chutesApiKey": "Chutes API-sleutel",
 		"getChutesApiKey": "Chutes API-sleutel ophalen",
+		"fireworksApiKey": "Fireworks API-sleutel",
+		"getFireworksApiKey": "Fireworks API-sleutel ophalen",
+		"featherlessApiKey": "Featherless API-sleutel",
+		"getFeatherlessApiKey": "Featherless API-sleutel ophalen",
+		"ioIntelligenceApiKey": "IO Intelligence API-sleutel",
+		"ioIntelligenceApiKeyPlaceholder": "Voer je IO Intelligence API-sleutel in",
+		"getIoIntelligenceApiKey": "IO Intelligence API-sleutel ophalen",
 		"deepSeekApiKey": "DeepSeek API-sleutel",
 		"getDeepSeekApiKey": "DeepSeek API-sleutel ophalen",
+		"doubaoApiKey": "Doubao API-sleutel",
+		"getDoubaoApiKey": "Doubao API-sleutel ophalen",
 		"moonshotApiKey": "Moonshot API-sleutel",
 		"getMoonshotApiKey": "Moonshot API-sleutel ophalen",
 		"moonshotBaseUrl": "Moonshot-ingangspunt",
+		"zaiApiKey": "Z AI API-sleutel",
+		"getZaiApiKey": "Z AI API-sleutel ophalen",
+		"zaiEntrypoint": "Z AI-ingangspunt",
+		"zaiEntrypointDescription": "Selecteer het juiste API-ingangspunt op basis van uw locatie. Als u zich in China bevindt, kies dan open.bigmodel.cn. Anders kiest u api.z.ai.",
+		"minimaxApiKey": "MiniMax API-sleutel",
+		"getMiniMaxApiKey": "MiniMax API-sleutel ophalen",
+		"minimaxBaseUrl": "MiniMax-ingangspunt",
 		"geminiApiKey": "Gemini API-sleutel",
 		"getGroqApiKey": "Groq API-sleutel ophalen",
 		"groqApiKey": "Groq API-sleutel",
+		"getSambaNovaApiKey": "SambaNova API-sleutel ophalen",
+		"sambaNovaApiKey": "SambaNova API-sleutel",
 		"getGeminiApiKey": "Gemini API-sleutel ophalen",
 		"getHuggingFaceApiKey": "Hugging Face API-sleutel ophalen",
 		"huggingFaceApiKey": "Hugging Face API-sleutel",
@@ -294,6 +346,7 @@
 		"awsSessionToken": "AWS-sessietoken",
 		"awsRegion": "AWS-regio",
 		"awsCrossRegion": "Gebruik cross-region inference",
+		"awsGlobalInference": "Gebruik wereldwijde inferentie (automatische selectie van optimale AWS-regio)",
 		"awsBedrockVpc": {
 			"useCustomVpcEndpoint": "Aangepast VPC-eindpunt gebruiken",
 			"vpcEndpointUrlPlaceholder": "Voer VPC-eindpunt URL in (optioneel)",
@@ -303,7 +356,17 @@
 		"enablePromptCachingTitle": "Schakel prompt caching in om de prestaties te verbeteren en de kosten te verlagen voor ondersteunde modellen.",
 		"cacheUsageNote": "Let op: als je geen cachegebruik ziet, probeer dan een ander model te selecteren en vervolgens weer je gewenste model.",
 		"vscodeLmModel": "Taalmodel",
-		"vscodeLmWarning": "Let op: dit is een zeer experimentele integratie en ondersteuning door providers kan variëren. Krijg je een foutmelding dat een model niet wordt ondersteund, dan ligt dat aan de provider.",
+		"vscodeLmWarning": "Let op: Modellen die via de VS Code Language Model API worden benaderd kunnen door de provider worden verpakt of fijn‑afgesteld, waardoor het gedrag kan afwijken van het rechtstreeks gebruiken van hetzelfde model bij een typische provider of router. Om een model uit de keuzelijst ‘Language Model’ te gebruiken, schakel eerst naar dat model en klik vervolgens op ‘Accepteren’ in de Copilot Chat‑prompt; anders kun je een fout zien zoals 400 ‘The requested model is not supported’.",
+		"geminiParameters": {
+			"urlContext": {
+				"title": "URL-context inschakelen",
+				"description": "Staat Gemini toe om URL's te openen en te verwerken voor extra context bij het genereren van antwoorden. Handig voor taken die webinhoudsanalyse vereisen."
+			},
+			"groundingSearch": {
+				"title": "Grounding met Google-zoekopdracht inschakelen",
+				"description": "Staat Gemini toe om Google te doorzoeken voor actuele informatie en antwoorden op realtime gegevens te baseren. Handig voor vragen die actuele informatie vereisen."
+			}
+		},
 		"googleCloudSetup": {
 			"title": "Om Google Cloud Vertex AI te gebruiken, moet je:",
 			"step1": "1. Maak een Google Cloud-account aan, schakel de Vertex AI API in en activeer de gewenste Claude-modellen.",
@@ -327,6 +390,10 @@
 		"ollama": {
 			"baseUrl": "Basis-URL (optioneel)",
 			"modelId": "Model-ID",
+			"apiKey": "Ollama API-sleutel",
+			"apiKeyHelp": "Optionele API-sleutel voor geauthenticeerde Ollama-instanties of cloudservices. Laat leeg voor lokale installaties.",
+			"numCtx": "Contextvenstergrootte (num_ctx)",
+			"numCtxHelp": "Overschrijft de standaard contextvenstergrootte van het model. Laat leeg om de Modelfile-configuratie van het model te gebruiken. De minimumwaarde is 128.",
 			"description": "Ollama laat je modellen lokaal op je computer draaien. Zie hun quickstart-gids voor instructies.",
 			"warning": "Let op: Roo Code gebruikt complexe prompts en werkt het beste met Claude-modellen. Minder krachtige modellen werken mogelijk niet zoals verwacht."
 		},
@@ -337,6 +404,10 @@
 		"humanRelay": {
 			"description": "Geen API-sleutel vereist, maar de gebruiker moet helpen met kopiëren en plakken naar de webchat-AI.",
 			"instructions": "Tijdens gebruik verschijnt een dialoogvenster en wordt het huidige bericht automatisch naar het klembord gekopieerd. Je moet deze plakken in webversies van AI (zoals ChatGPT of Claude), vervolgens het antwoord van de AI terugkopiëren naar het dialoogvenster en op bevestigen klikken."
+		},
+		"roo": {
+			"authenticatedMessage": "Veilig geauthenticeerd via je Roo Code Cloud-account.",
+			"connectButton": "Verbinden met Roo Code Cloud"
 		},
 		"openRouter": {
 			"providerRouting": {
@@ -361,7 +432,7 @@
 			},
 			"computerUse": {
 				"label": "Computergebruik",
-				"description": "Kan dit model met een browser werken? (bijv. Claude 3.7 Sonnet)."
+				"description": "Kan dit model met een browser werken?"
 			},
 			"promptCache": {
 				"label": "Prompt caching",
@@ -393,15 +464,24 @@
 		},
 		"consecutiveMistakeLimit": {
 			"label": "Fout- & Herhalingslimiet",
-			"description": "Aantal opeenvolgende fouten of herhaalde acties voordat het dialoogvenster 'Roo ondervindt problemen' wordt weergegeven",
+			"description": "Aantal opeenvolgende fouten of herhaalde acties voordat het dialoogvenster 'Roo ondervindt problemen' wordt weergegeven. Zet op 0 om dit veiligheidsmechanisme uit te schakelen (wordt nooit geactiveerd).",
 			"unlimitedDescription": "Onbeperkt aantal nieuwe pogingen ingeschakeld (automatisch doorgaan). Het dialoogvenster zal nooit verschijnen.",
 			"warning": "⚠️ Instellen op 0 staat onbeperkte nieuwe pogingen toe, wat aanzienlijk API-gebruik kan verbruiken"
 		},
 		"reasoningEffort": {
 			"label": "Model redeneervermogen",
+			"none": "Geen",
+			"minimal": "Minimaal (Snelst)",
 			"high": "Hoog",
 			"medium": "Middel",
 			"low": "Laag"
+		},
+		"verbosity": {
+			"label": "Uitvoerbaarheid",
+			"high": "Hoog",
+			"medium": "Gemiddeld",
+			"low": "Laag",
+			"description": "Bepaalt hoe gedetailleerd de reacties van het model zijn. Lage uitvoerbaarheid levert beknopte antwoorden op, terwijl hoge uitvoerbaarheid uitgebreide uitleg geeft."
 		},
 		"setReasoningLevel": "Redeneervermogen inschakelen",
 		"claudeCode": {
@@ -441,6 +521,10 @@
 		}
 	},
 	"checkpoints": {
+		"timeout": {
+			"label": "Timeout voor checkpoint-initialisatie (seconden)",
+			"description": "Maximale wachttijd voor het initialiseren van de checkpointservice. Standaard is 15 seconden. Bereik: 10-60 seconden."
+		},
 		"enable": {
 			"label": "Automatische checkpoints inschakelen",
 			"description": "Indien ingeschakeld, maakt Roo automatisch checkpoints tijdens het uitvoeren van taken, zodat je eenvoudig wijzigingen kunt bekijken of terugzetten. <0>Meer informatie</0>"
@@ -502,6 +586,16 @@
 			"label": "Limiet gelijktijdige bestandslezingen",
 			"description": "Maximum aantal bestanden dat de 'read_file' tool tegelijkertijd kan verwerken. Hogere waarden kunnen het lezen van meerdere kleine bestanden versnellen maar verhogen het geheugengebruik."
 		},
+		"maxImageFileSize": {
+			"label": "Maximum afbeeldingsbestandsgrootte",
+			"mb": "MB",
+			"description": "Maximale grootte (in MB) voor afbeeldingsbestanden die kunnen worden verwerkt door de read file tool."
+		},
+		"maxTotalImageSize": {
+			"label": "Maximale totale afbeeldingsgrootte",
+			"mb": "MB",
+			"description": "Maximale cumulatieve groottelimiet (in MB) voor alle afbeeldingen die in één read_file-bewerking worden verwerkt. Bij het lezen van meerdere afbeeldingen wordt de grootte van elke afbeelding bij het totaal opgeteld. Als het toevoegen van een andere afbeelding deze limiet zou overschrijden, wordt deze overgeslagen."
+		},
 		"diagnostics": {
 			"includeMessages": {
 				"label": "Automatisch diagnostiek opnemen in context",
@@ -527,6 +621,18 @@
 			"profileDescription": "Aangepaste drempelwaarde alleen voor dit profiel (overschrijft globale standaard)",
 			"inheritDescription": "Dit profiel erft de globale standaard drempelwaarde ({{threshold}}%)",
 			"usesGlobal": "(gebruikt globaal {{threshold}}%)"
+		},
+		"includeCurrentTime": {
+			"label": "Huidige tijd opnemen in context",
+			"description": "Indien ingeschakeld, worden de huidige tijd en tijdzone-informatie opgenomen in de systeemprompt. Schakel dit uit als modellen stoppen met werken vanwege tijdproblemen."
+		},
+		"includeCurrentCost": {
+			"label": "Huidige kosten opnemen in context",
+			"description": "Indien ingeschakeld, worden de huidige API-gebruikskosten opgenomen in de systeemprompt. Schakel dit uit als modellen stoppen met werken vanwege kostenproblemen."
+		},
+		"maxGitStatusFiles": {
+			"label": "Git status max bestanden",
+			"description": "Maximum aantal bestandsvermeldingen dat in de git-statuscontext moet worden opgenomen. Stel in op 0 om uit te schakelen. Branch-info en commits worden altijd getoond wanneer > 0."
 		}
 	},
 	"terminal": {
@@ -536,64 +642,72 @@
 		},
 		"advanced": {
 			"label": "Terminalinstellingen: Geavanceerd",
-			"description": "De volgende opties vereisen mogelijk een herstart van de terminal om de instelling toe te passen."
+			"description": "Deze instellingen gelden alleen wanneer 'Inline Terminal gebruiken' is uitgeschakeld. Ze beïnvloeden alleen de VS Code-terminal en kunnen een IDE-herstart vereisen."
 		},
 		"outputLineLimit": {
 			"label": "Terminaluitvoerlimiet",
-			"description": "Maximaal aantal regels dat wordt opgenomen in de terminaluitvoer bij het uitvoeren van commando's. Overtollige regels worden uit het midden verwijderd om tokens te besparen. <0>Meer informatie</0>"
+			"description": "Behoudt eerste en laatste regels en verwijdert middelste om onder de limiet te blijven. Verlaag om tokens te besparen; verhoog om Roo meer tussendetails te geven. Roo ziet een placeholder waar inhoud wordt overgeslagen.<0>Meer informatie</0>"
 		},
 		"outputCharacterLimit": {
-			"label": "Tekenlimiet terminal",
-			"description": "Maximaal aantal tekens dat moet worden opgenomen in de terminaluitvoer bij het uitvoeren van commando's. Deze limiet heeft voorrang op de regellimiet om geheugenproblemen door extreem lange regels te voorkomen. Bij overschrijding wordt de uitvoer afgekapt. <0>Meer informatie</0>"
+			"label": "Terminal-tekenlimiet",
+			"description": "Overschrijft de regellimiet om geheugenproblemen te voorkomen door een harde limiet op uitvoergrootte af te dwingen. Bij overschrijding behoudt het begin en einde en toont een placeholder aan Roo waar inhoud wordt overgeslagen. <0>Meer informatie</0>"
 		},
 		"shellIntegrationTimeout": {
-			"label": "Terminal shell-integratie timeout",
-			"description": "Maximale wachttijd voor het initialiseren van shell-integratie voordat commando's worden uitgevoerd. Voor gebruikers met lange shell-opstarttijden moet deze waarde mogelijk worden verhoogd als je 'Shell Integration Unavailable'-fouten ziet in de terminal. <0>Meer informatie</0>"
+			"label": "Terminal-shell-integratie timeout",
+			"description": "Hoe lang te wachten op VS Code-shell-integratie voordat commando's worden uitgevoerd. Verhoog als je shell traag opstart of je 'Shell-Integratie Niet Beschikbaar'-fouten ziet. <0>Meer informatie</0>"
 		},
 		"shellIntegrationDisabled": {
-			"label": "Terminal shell-integratie uitschakelen",
-			"description": "Schakel dit in als terminalcommando's niet correct werken of als je 'Shell Integration Unavailable'-fouten ziet. Dit gebruikt een eenvoudigere methode om commando's uit te voeren en omzeilt enkele geavanceerde terminalfuncties. <0>Meer informatie</0>"
+			"label": "Inline Terminal gebruiken (aanbevolen)",
+			"description": "Voer commando's uit in de Inline Terminal (chat) om shell-profielen/integratie te omzeilen voor snellere, betrouwbaardere runs. Wanneer uitgeschakeld gebruikt Roo de VS Code-terminal met je shell-profiel, prompts en plugins. <0>Meer informatie</0>"
 		},
 		"commandDelay": {
-			"label": "Terminalcommando-vertraging",
-			"description": "Vertraging in milliseconden na het uitvoeren van een commando. De standaardinstelling van 0 schakelt de vertraging volledig uit. Dit kan helpen om te zorgen dat de uitvoer volledig wordt vastgelegd in terminals met timingproblemen. In de meeste terminals wordt dit geïmplementeerd door `PROMPT_COMMAND='sleep N'` te zetten en in Powershell wordt `start-sleep` toegevoegd aan het einde van elk commando. Oorspronkelijk was dit een workaround voor VSCode bug#237208 en is mogelijk niet meer nodig. <0>Meer informatie</0>"
+			"label": "Terminal-commandovertraging",
+			"description": "Voegt korte pauze toe na elk commando zodat VS Code-terminal alle uitvoer kan flushen (bash/zsh: PROMPT_COMMAND sleep; PowerShell: start-sleep). Gebruik alleen als je ontbrekende tail-uitvoer ziet; anders op 0 laten. <0>Meer informatie</0>"
 		},
 		"compressProgressBar": {
 			"label": "Voortgangsbalk-uitvoer comprimeren",
-			"description": "Indien ingeschakeld, verwerkt Roo terminaluitvoer met carriage returns (\r) om te simuleren hoe een echte terminal inhoud weergeeft. Dit verwijdert tussenliggende voortgangsbalken en behoudt alleen de eindstatus, waardoor er meer contextruimte overblijft. <0>Meer informatie</0>"
+			"description": "Klapt voortgangsbalken/spinners in zodat alleen eindstatus behouden blijft (bespaart tokens). <0>Meer informatie</0>"
 		},
 		"powershellCounter": {
 			"label": "PowerShell-teller workaround inschakelen",
-			"description": "Indien ingeschakeld, voegt Roo een teller toe aan PowerShell-commando's om correcte uitvoering te garanderen. Dit helpt bij PowerShell-terminals die problemen hebben met het vastleggen van uitvoer. <0>Meer informatie</0>"
+			"description": "Schakel in wanneer PowerShell-uitvoer ontbreekt of gedupliceerd wordt; voegt kleine teller toe aan elk commando om uitvoer te stabiliseren. Laat uit als uitvoer al correct lijkt. <0>Meer informatie</0>"
 		},
 		"zshClearEolMark": {
-			"label": "ZSH EOL-markering wissen",
-			"description": "Indien ingeschakeld, wist Roo de ZSH end-of-line markering door PROMPT_EOL_MARK='' te zetten. Dit voorkomt problemen met de interpretatie van uitvoer die eindigt met speciale tekens zoals '%'. <0>Meer informatie</0>"
+			"label": "ZSH-EOL-markering wissen",
+			"description": "Schakel in wanneer je verdwaalde % aan regeleinden ziet of parsing verkeerd lijkt; laat Zsh's einde-van-regel-markering (%) weg. <0>Meer informatie</0>"
 		},
 		"zshOhMy": {
 			"label": "Oh My Zsh-integratie inschakelen",
-			"description": "Indien ingeschakeld, zet Roo ITERM_SHELL_INTEGRATION_INSTALLED=Yes om Oh My Zsh shell-integratiefuncties te activeren. Het toepassen van deze instelling kan een herstart van de IDE vereisen. <0>Meer informatie</0>"
+			"description": "Schakel in wanneer je Oh My Zsh-thema/plugins shell-integratie verwachten; stelt ITERM_SHELL_INTEGRATION_INSTALLED=Yes in. Schakel uit om instellen van die variabele te vermijden. <0>Meer informatie</0>"
 		},
 		"zshP10k": {
 			"label": "Powerlevel10k-integratie inschakelen",
-			"description": "Indien ingeschakeld, zet Roo POWERLEVEL9K_TERM_SHELL_INTEGRATION=true om Powerlevel10k shell-integratiefuncties te activeren. <0>Meer informatie</0>"
+			"description": "Schakel in wanneer je Powerlevel10k-shell-integratie gebruikt. <0>Meer informatie</0>"
 		},
 		"zdotdir": {
 			"label": "ZDOTDIR-afhandeling inschakelen",
-			"description": "Indien ingeschakeld, maakt Roo een tijdelijke map aan voor ZDOTDIR om zsh shell-integratie correct af te handelen. Dit zorgt ervoor dat VSCode shell-integratie goed werkt met zsh en je zsh-configuratie behouden blijft. <0>Meer informatie</0>"
+			"description": "Schakel in wanneer zsh-shell-integratie mislukt of conflicteert met je dotfiles. <0>Meer informatie</0>"
 		},
 		"inheritEnv": {
 			"label": "Omgevingsvariabelen overnemen",
-			"description": "Indien ingeschakeld, neemt de terminal omgevingsvariabelen over van het bovenliggende VSCode-proces, zoals shell-integratie-instellingen uit het gebruikersprofiel. Dit schakelt direct de VSCode-instelling `terminal.integrated.inheritEnv` om. <0>Meer informatie</0>"
+			"description": "Schakel in om omgevingsvariabelen over te nemen van het bovenliggende VS Code-proces. <0>Meer informatie</0>"
 		}
 	},
 	"advancedSettings": {
 		"title": "Geavanceerde instellingen"
 	},
+	"toolProtocol": {
+		"label": "Tool Call Protocol",
+		"description": "Kies hoe Roo communiceert met de API. Native gebruikt de functie-aanroep API van de provider, terwijl XML gebruikmaakt van XML-geformatteerde tooldefinities.",
+		"default": "Standaard",
+		"xml": "XML",
+		"native": "Native",
+		"currentDefault": "Standaard: {{protocol}}"
+	},
 	"advanced": {
 		"diff": {
 			"label": "Bewerken via diffs inschakelen",
-			"description": "Indien ingeschakeld kan Roo sneller bestanden bewerken en worden afgekorte volledige-bestandswijzigingen automatisch geweigerd. Werkt het beste met het nieuwste Claude 3.7 Sonnet-model.",
+			"description": "Indien ingeschakeld kan Roo sneller bestanden bewerken en worden afgekorte volledige-bestandswijzigingen automatisch geweigerd",
 			"strategy": {
 				"label": "Diff-strategie",
 				"options": {
@@ -622,10 +736,6 @@
 			"name": "Experimentele unified diff-strategie gebruiken",
 			"description": "Schakel de experimentele unified diff-strategie in. Deze strategie kan het aantal herhalingen door model fouten verminderen, maar kan onverwacht gedrag of onjuiste bewerkingen veroorzaken. Alleen inschakelen als je de risico's begrijpt en wijzigingen zorgvuldig wilt controleren."
 		},
-		"SEARCH_AND_REPLACE": {
-			"name": "Experimentele zoek-en-vervang-tool gebruiken",
-			"description": "Schakel de experimentele zoek-en-vervang-tool in, waarmee Roo meerdere instanties van een zoekterm in één verzoek kan vervangen."
-		},
 		"INSERT_BLOCK": {
 			"name": "Experimentele inhoud-invoeg-tool gebruiken",
 			"description": "Schakel de experimentele inhoud-invoeg-tool in, waarmee Roo inhoud op specifieke regelnummers kan invoegen zonder een diff te maken."
@@ -649,6 +759,33 @@
 		"MULTI_FILE_APPLY_DIFF": {
 			"name": "Gelijktijdige bestandsbewerkingen inschakelen",
 			"description": "Wanneer ingeschakeld, kan Roo meerdere bestanden in één verzoek bewerken. Wanneer uitgeschakeld, moet Roo bestanden één voor één bewerken. Het uitschakelen hiervan kan helpen wanneer je werkt met minder capabele modellen of wanneer je meer controle wilt over bestandswijzigingen."
+		},
+		"PREVENT_FOCUS_DISRUPTION": {
+			"name": "Achtergrondbewerking",
+			"description": "Voorkomt editor focus verstoring wanneer ingeschakeld. Bestandsbewerkingen gebeuren op de achtergrond zonder diff-weergaven te openen of focus te stelen. Je kunt ononderbroken doorwerken terwijl Roo wijzigingen aanbrengt. Bestanden kunnen zonder focus worden geopend om diagnostiek vast te leggen of volledig gesloten blijven."
+		},
+		"ASSISTANT_MESSAGE_PARSER": {
+			"name": "Nieuwe berichtparser gebruiken",
+			"description": "Schakel de experimentele streaming-berichtparser in die lange antwoorden sneller maakt door berichten efficiënter te verwerken."
+		},
+		"NEW_TASK_REQUIRE_TODOS": {
+			"name": "'todos'-lijst vereisen voor nieuwe taken",
+			"description": "Wanneer ingeschakeld, vereist de new_task-tool dat een todos-parameter wordt opgegeven. Dit zorgt ervoor dat alle nieuwe taken beginnen met een duidelijke lijst met doelstellingen. Wanneer uitgeschakeld (standaard), blijft de todos-parameter optioneel voor achterwaartse compatibiliteit."
+		},
+		"IMAGE_GENERATION": {
+			"name": "AI-afbeeldingsgeneratie inschakelen",
+			"description": "Wanneer ingeschakeld, kan Roo afbeeldingen genereren van tekstprompts met behulp van OpenRouter's afbeeldingsgeneratiemodellen. Vereist een geconfigureerde OpenRouter API-sleutel.",
+			"openRouterApiKeyLabel": "OpenRouter API-sleutel",
+			"openRouterApiKeyPlaceholder": "Voer je OpenRouter API-sleutel in",
+			"getApiKeyText": "Haal je API-sleutel op van",
+			"modelSelectionLabel": "Afbeeldingsgeneratiemodel",
+			"modelSelectionDescription": "Selecteer het model voor afbeeldingsgeneratie",
+			"warningMissingKey": "⚠️ OpenRouter API-sleutel is vereist voor afbeeldingsgeneratie. Configureer deze hierboven.",
+			"successConfigured": "✓ Afbeeldingsgeneratie is geconfigureerd en klaar voor gebruik"
+		},
+		"RUN_SLASH_COMMAND": {
+			"name": "Model-geïnitieerde slash-commando's inschakelen",
+			"description": "Wanneer ingeschakeld, kan Roo je slash-commando's uitvoeren om workflows uit te voeren."
 		}
 	},
 	"promptCaching": {
@@ -663,10 +800,9 @@
 	"modelInfo": {
 		"supportsImages": "Ondersteunt afbeeldingen",
 		"noImages": "Ondersteunt geen afbeeldingen",
-		"supportsComputerUse": "Ondersteunt computergebruik",
-		"noComputerUse": "Ondersteunt geen computergebruik",
 		"supportsPromptCache": "Ondersteunt prompt caching",
 		"noPromptCache": "Ondersteunt geen prompt caching",
+		"contextWindow": "Contextvenster:",
 		"maxOutput": "Maximale output",
 		"inputPrice": "Invoerprijs",
 		"outputPrice": "Uitvoerprijs",
@@ -694,7 +830,7 @@
 		"feedback": "Heb je vragen of feedback? Open gerust een issue op <githubLink>github.com/RooCodeInc/Roo-Code</githubLink> of sluit je aan bij <redditLink>reddit.com/r/RooCode</redditLink> of <discordLink>discord.gg/roocode</discordLink>",
 		"telemetry": {
 			"label": "Anonieme fout- en gebruiksrapportage toestaan",
-			"description": "Help Roo Code te verbeteren door anonieme gebruiksgegevens en foutmeldingen te verzenden. Er worden nooit code, prompts of persoonlijke gegevens verzonden. Zie ons privacybeleid voor meer informatie."
+			"description": "Help Roo Code te verbeteren door anonieme gebruiksgegevens en foutmeldingen te versturen. Deze telemetrie verzamelt geen code, prompts of persoonlijke informatie. Zie ons <privacyLink>privacybeleid</privacyLink> voor meer details."
 		},
 		"settings": {
 			"import": "Importeren",
@@ -718,9 +854,11 @@
 			"regionMismatch": "Waarschuwing: De regio in je ARN ({{arnRegion}}) komt niet overeen met je geselecteerde regio ({{region}}). Dit kan toegangsfouten veroorzaken. De provider gebruikt de regio uit de ARN."
 		},
 		"modelAvailability": "Het opgegeven model-ID ({{modelId}}) is niet beschikbaar. Kies een ander model.",
+		"modelDeprecated": "Dit model is niet meer beschikbaar. Kies een ander model.",
 		"providerNotAllowed": "Provider '{{provider}}' is niet toegestaan door je organisatie",
 		"modelNotAllowed": "Model '{{model}}' is niet toegestaan voor provider '{{provider}}' door je organisatie",
-		"profileInvalid": "Dit profiel bevat een provider of model dat niet is toegestaan door je organisatie"
+		"profileInvalid": "Dit profiel bevat een provider of model dat niet is toegestaan door je organisatie",
+		"qwenCodeOauthPath": "Je moet een geldig OAuth-referentiepad opgeven"
 	},
 	"placeholders": {
 		"apiKey": "Voer API-sleutel in...",
@@ -756,5 +894,28 @@
 		"useCustomArn": "Aangepaste ARN gebruiken..."
 	},
 	"includeMaxOutputTokens": "Maximale output tokens opnemen",
-	"includeMaxOutputTokensDescription": "Stuur maximale output tokens parameter in API-verzoeken. Sommige providers ondersteunen dit mogelijk niet."
+	"includeMaxOutputTokensDescription": "Stuur maximale output tokens parameter in API-verzoeken. Sommige providers ondersteunen dit mogelijk niet.",
+	"limitMaxTokensDescription": "Beperk het maximale aantal tokens in het antwoord",
+	"maxOutputTokensLabel": "Maximale output tokens",
+	"maxTokensGenerateDescription": "Maximale tokens om te genereren in het antwoord",
+	"serviceTier": {
+		"label": "Serviceniveau",
+		"tooltip": "Voor snellere verwerking van API-verzoeken, probeer het prioriteitsverwerkingsniveau. Voor lagere prijzen met hogere latentie, probeer het flexverwerkingsniveau.",
+		"standard": "Standaard",
+		"flex": "Flex",
+		"priority": "Prioriteit",
+		"pricingTableTitle": "Prijzen per serviceniveau (prijs per 1M tokens)",
+		"columns": {
+			"tier": "Niveau",
+			"input": "Invoer",
+			"output": "Uitvoer",
+			"cacheReads": "Cache leest"
+		}
+	},
+	"ui": {
+		"collapseThinking": {
+			"label": "Denkberichten standaard samenvouwen",
+			"description": "Indien ingeschakeld, worden denkblokken standaard samengevouwen totdat je ermee interageert"
+		}
+	}
 }

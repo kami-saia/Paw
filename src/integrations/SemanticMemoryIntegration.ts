@@ -1,5 +1,6 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 import { McpHub, McpServer } from "../services/mcp/McpHub"
+import { RooCodeEventName } from "@roo-code/types"
 import type { Task, UserMessageEnrichmentPayload, AssistantResponseProcessedPayload } from "../core/task/Task" // Import Task and event payload types
 
 // Define the RecalledMemoryItem interface as per the integration plan
@@ -49,8 +50,14 @@ export class SemanticMemoryIntegration {
 	}
 
 	private subscribeToTaskEvents(): void {
-		this.task.on("beforeUserMessageEnrichment", this.handleBeforeUserMessageEnrichment.bind(this))
-		this.task.on("afterAssistantResponseProcessed", this.handleAfterAssistantResponseProcessed.bind(this))
+		this.task.on(
+			RooCodeEventName.TaskBeforeUserMessageEnrichment,
+			this.handleBeforeUserMessageEnrichment.bind(this),
+		)
+		this.task.on(
+			RooCodeEventName.TaskAfterAssistantResponseProcessed,
+			this.handleAfterAssistantResponseProcessed.bind(this),
+		)
 		console.log(`[SemanticMemoryIntegration Task ${this.task.taskId}] Subscribed to task events.`)
 	}
 
@@ -146,7 +153,8 @@ export class SemanticMemoryIntegration {
 			if (payload.taskId !== this.task.taskId) return // Ensure we're acting on the correct task
 
 			// Clean up any stale memory blocks from previous enrichment runs before processing
-			payload.userContent = payload.userContent.filter((block) => {
+			const userContent = payload.userContent as Anthropic.ContentBlockParam[]
+			payload.userContent = userContent.filter((block) => {
 				if (block.type === "text") {
 					// Filter out blocks that are just recalled memories.
 					return !block.text.trim().startsWith("[Recalled Memories]")
@@ -161,7 +169,7 @@ export class SemanticMemoryIntegration {
 
 			let userQueryParts: string[] = []
 
-			for (const block of payload.userContent) {
+			for (const block of payload.userContent as Anthropic.ContentBlockParam[]) {
 				console.error(
 					`[SemanticMemoryIntegration Task ${this.task.taskId}] Processing block:`,
 					JSON.stringify(block, null, 2),
@@ -211,7 +219,10 @@ export class SemanticMemoryIntegration {
 				return
 			}
 
-			const recalledMemories = await this.enrichWithContextInternal(userQuery, payload.currentHistorySlice)
+			const recalledMemories = await this.enrichWithContextInternal(
+				userQuery,
+				payload.currentHistorySlice as Anthropic.MessageParam[],
+			)
 
 			if (recalledMemories.length > 0) {
 				const formattedMemories = recalledMemories
@@ -242,7 +253,7 @@ export class SemanticMemoryIntegration {
 		// The new `syncHistory` method, called on completion, handles all unstored messages robustly.
 
 		// We only need to check for the completion signal to trigger a final sync.
-		const assistantMessage = payload.assistantMessage
+		const assistantMessage = payload.assistantMessage as Anthropic.MessageParam
 		let assistantMessageText = ""
 		if (typeof assistantMessage.content === "string") {
 			assistantMessageText = assistantMessage.content

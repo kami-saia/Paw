@@ -7,17 +7,29 @@ import type {
 	TelemetrySetting,
 	Experiments,
 	ClineMessage,
-	OrganizationAllowList,
+	MarketplaceItem,
+	TodoItem,
 	CloudUserInfo,
+	CloudOrganizationMembership,
+	OrganizationAllowList,
 	ShareVisibility,
+	QueuedMessage,
 } from "@roo-code/types"
 
 import { GitCommit } from "../utils/git"
 
 import { McpServer } from "./mcp"
 import { Mode } from "./modes"
-import { RouterModels } from "./api"
-import type { MarketplaceItem } from "@roo-code/types"
+import { ModelRecord, RouterModels } from "./api"
+
+// Command interface for frontend/backend communication
+export interface Command {
+	name: string
+	source: "global" | "project" | "built-in"
+	filePath?: string
+	description?: string
+	argumentHint?: string
+}
 
 // Type for marketplace installed metadata
 export interface MarketplaceInstalledMetadata {
@@ -32,6 +44,7 @@ export interface IndexingStatus {
 	processedItems: number
 	totalItems: number
 	currentItemUnit?: string
+	workspacePath?: string
 }
 
 export interface IndexingStatusUpdateMessage {
@@ -79,6 +92,7 @@ export interface ExtensionMessage {
 		| "checkRulesDirectoryResult"
 		| "deleteCustomModeCheck"
 		| "currentCheckpointUpdated"
+		| "checkpointInitWarning"
 		| "showHumanRelayDialog"
 		| "humanRelayResponse"
 		| "humanRelayCancel"
@@ -98,6 +112,7 @@ export interface ExtensionMessage {
 		| "authenticatedUser"
 		| "condenseTaskContextResponse"
 		| "singleRouterModelFetchResponse"
+		| "rooCreditBalance"
 		| "indexingStatusUpdate"
 		| "indexCleared"
 		| "codebaseIndexConfig"
@@ -109,8 +124,20 @@ export interface ExtensionMessage {
 		| "codeIndexSecretStatus"
 		| "showDeleteMessageDialog"
 		| "showEditMessageDialog"
+		| "commands"
+		| "insertTextIntoTextarea"
+		| "dismissedUpsells"
+		| "organizationSwitchResult"
+		| "interactionRequired"
+		| "browserSessionUpdate"
+		| "browserSessionNavigate"
 	text?: string
 	payload?: any // Add a generic payload for now, can refine later
+	// Checkpoint warning message
+	checkpointWarning?: {
+		type: "WAIT_TIMEOUT" | "INIT_TIMEOUT"
+		timeout: number
+	}
 	action?:
 		| "chatButtonClicked"
 		| "mcpButtonClicked"
@@ -118,10 +145,11 @@ export interface ExtensionMessage {
 		| "historyButtonClicked"
 		| "promptsButtonClicked"
 		| "marketplaceButtonClicked"
-		| "accountButtonClicked"
+		| "cloudButtonClicked"
 		| "didBecomeVisible"
 		| "focusInput"
 		| "switchTab"
+		| "toggleAutoApprove"
 	invoke?: "newChat" | "sendMessage" | "primaryButtonClick" | "secondaryButtonClick" | "setChatBoxMessage"
 	state?: ExtensionState
 	images?: string[]
@@ -134,30 +162,25 @@ export interface ExtensionMessage {
 	clineMessage?: ClineMessage
 	routerModels?: RouterModels
 	openAiModels?: string[]
-	ollamaModels?: string[]
-	lmStudioModels?: string[]
+	ollamaModels?: ModelRecord
+	lmStudioModels?: ModelRecord
 	vsCodeLmModels?: { vendor?: string; family?: string; version?: string; id?: string }[]
 	huggingFaceModels?: Array<{
-		_id: string
 		id: string
-		inferenceProviderMapping: Array<{
+		object: string
+		created: number
+		owned_by: string
+		providers: Array<{
 			provider: string
-			providerId: string
 			status: "live" | "staging" | "error"
-			task: "conversational"
-		}>
-		trendingScore: number
-		config: {
-			architectures: string[]
-			model_type: string
-			tokenizer_config?: {
-				chat_template?: string | Array<{ name: string; template: string }>
-				model_max_length?: number
+			supports_tools?: boolean
+			supports_structured_output?: boolean
+			context_length?: number
+			pricing?: {
+				input: number
+				output: number
 			}
-		}
-		tags: string[]
-		pipeline_tag: "text-generation" | "image-text-to-text"
-		library_name?: string
+		}>
 	}>
 	mcpServers?: McpServer[]
 	commits?: GitCommit[]
@@ -179,12 +202,22 @@ export interface ExtensionMessage {
 	organizationAllowList?: OrganizationAllowList
 	tab?: string
 	marketplaceItems?: MarketplaceItem[]
+	organizationMcps?: MarketplaceItem[]
 	marketplaceInstalledMetadata?: MarketplaceInstalledMetadata
+	errors?: string[]
 	visibility?: ShareVisibility
 	rulesFolderPath?: string
 	settings?: any
 	messageTs?: number
+	hasCheckpoint?: boolean
 	context?: string
+	commands?: Command[]
+	queuedMessages?: QueuedMessage[]
+	list?: string[] // For dismissedUpsells
+	organizationId?: string | null // For organizationSwitchResult
+	browserSessionMessages?: ClineMessage[] // For browser session panel updates
+	isBrowserSessionActive?: boolean // For browser session panel updates
+	stepIndex?: number // For browserSessionNavigate: the target step index to display
 }
 
 export type ExtensionState = Pick<
@@ -192,42 +225,38 @@ export type ExtensionState = Pick<
 	| "currentApiConfigName"
 	| "listApiConfigMeta"
 	| "pinnedApiConfigs"
-	// | "lastShownAnnouncementId"
 	| "customInstructions"
-	// | "taskHistory" // Optional in GlobalSettings, required here.
+	| "dismissedUpsells"
 	| "autoApprovalEnabled"
 	| "alwaysAllowReadOnly"
 	| "alwaysAllowReadOnlyOutsideWorkspace"
 	| "alwaysAllowWrite"
 	| "alwaysAllowWriteOutsideWorkspace"
 	| "alwaysAllowWriteProtected"
-	// | "writeDelayMs" // Optional in GlobalSettings, required here.
 	| "alwaysAllowBrowser"
 	| "alwaysApproveResubmit"
-	// | "requestDelaySeconds" // Optional in GlobalSettings, required here.
 	| "alwaysAllowMcp"
 	| "alwaysAllowModeSwitch"
 	| "alwaysAllowSubtasks"
+	| "alwaysAllowFollowupQuestions"
 	| "alwaysAllowExecute"
 	| "alwaysAllowUpdateTodoList"
+	| "followupAutoApproveTimeoutMs"
 	| "allowedCommands"
 	| "deniedCommands"
 	| "allowedMaxRequests"
+	| "allowedMaxCost"
 	| "browserToolEnabled"
 	| "browserViewportSize"
 	| "screenshotQuality"
 	| "remoteBrowserEnabled"
+	| "cachedChromeHostUrl"
 	| "remoteBrowserHost"
-	// | "enableCheckpoints" // Optional in GlobalSettings, required here.
 	| "ttsEnabled"
 	| "ttsSpeed"
 	| "soundEnabled"
 	| "soundVolume"
-	// | "maxOpenTabsContext" // Optional in GlobalSettings, required here.
-	// | "maxWorkspaceFiles" // Optional in GlobalSettings, required here.
-	// | "showRooIgnoredFiles" // Optional in GlobalSettings, required here.
-	// | "maxReadFileLine" // Optional in GlobalSettings, required here.
-	| "maxConcurrentFileReads" // Optional in GlobalSettings, required here.
+	| "maxConcurrentFileReads"
 	| "terminalOutputLineLimit"
 	| "terminalOutputCharacterLimit"
 	| "terminalShellIntegrationTimeout"
@@ -242,14 +271,8 @@ export type ExtensionState = Pick<
 	| "diagnosticsEnabled"
 	| "diffEnabled"
 	| "fuzzyMatchThreshold"
-	// | "experiments" // Optional in GlobalSettings, required here.
 	| "language"
-	// | "telemetrySetting" // Optional in GlobalSettings, required here.
-	// | "mcpEnabled" // Optional in GlobalSettings, required here.
-	// | "enableMcpServerCreation" // Optional in GlobalSettings, required here.
-	// | "mode" // Optional in GlobalSettings, required here.
 	| "modeApiConfigs"
-	// | "customModes" // Optional in GlobalSettings, required here.
 	| "customModePrompts"
 	| "customSupportPrompts"
 	| "enhancementApiConfigId"
@@ -260,11 +283,18 @@ export type ExtensionState = Pick<
 	| "profileThresholds"
 	| "includeDiagnosticMessages"
 	| "maxDiagnosticMessages"
+	| "openRouterImageGenerationSelectedModel"
+	| "includeTaskHistoryInEnhance"
+	| "reasoningBlockCollapsed"
+	| "includeCurrentTime"
+	| "includeCurrentCost"
+	| "maxGitStatusFiles"
 > & {
 	version: string
 	clineMessages: ClineMessage[]
 	currentTaskItem?: HistoryItem
-	apiConfiguration?: ProviderSettings
+	currentTaskTodos?: TodoItem[] // Initial todos for the current task
+	apiConfiguration: ProviderSettings
 	uriScheme?: string
 	shouldShowAnnouncement: boolean
 
@@ -274,10 +304,13 @@ export type ExtensionState = Pick<
 	requestDelaySeconds: number
 
 	enableCheckpoints: boolean
+	checkpointTimeout: number // Timeout for checkpoint initialization in seconds (default: 15)
 	maxOpenTabsContext: number // Maximum number of VSCode open tabs to include in context (0-500)
 	maxWorkspaceFiles: number // Maximum number of files to include in current working directory details (0-500)
 	showRooIgnoredFiles: boolean // Whether to show .rooignore'd files in listings
 	maxReadFileLine: number // Maximum number of lines to read from a file before truncating
+	maxImageFileSize: number // Maximum size of image files to process in MB
+	maxTotalImageSize: number // Maximum total size for all images in a single read operation in MB
 
 	experiments: Experiments // Map of experiment IDs to their enabled state
 
@@ -300,8 +333,12 @@ export type ExtensionState = Pick<
 	cloudUserInfo: CloudUserInfo | null
 	cloudIsAuthenticated: boolean
 	cloudApiUrl?: string
+	cloudOrganizations?: CloudOrganizationMembership[]
 	sharingEnabled: boolean
 	organizationAllowList: OrganizationAllowList
+	organizationSettingsVersion?: number
+
+	isBrowserSessionActive: boolean // Actual browser session state
 
 	autoCondenseContext: boolean
 	autoCondenseContextPercent: number
@@ -309,6 +346,17 @@ export type ExtensionState = Pick<
 	marketplaceInstalledMetadata?: { project: Record<string, any>; global: Record<string, any> }
 	profileThresholds: Record<string, number>
 	hasOpenedModeSelector: boolean
+	openRouterImageApiKey?: string
+	openRouterUseMiddleOutTransform?: boolean
+	messageQueue?: QueuedMessage[]
+	lastShownAnnouncementId?: string
+	apiModelId?: string
+	mcpServers?: McpServer[]
+	hasSystemPromptOverride?: boolean
+	mdmCompliant?: boolean
+	remoteControlEnabled: boolean
+	taskSyncEnabled: boolean
+	featureRoomoteControlEnabled: boolean
 }
 
 export interface ClineSayTool {
@@ -326,11 +374,16 @@ export interface ClineSayTool {
 		| "switchMode"
 		| "newTask"
 		| "finishTask"
-		| "searchAndReplace"
 		| "insertContent"
+		| "generateImage"
+		| "imageGenerated"
+		| "runSlashCommand"
+		| "updateTodoList"
 	path?: string
 	diff?: string
 	content?: string
+	// Unified diff statistics computed by the extension
+	diffStats?: { added: number; removed: number }
 	regex?: string
 	filePattern?: string
 	mode?: string
@@ -338,12 +391,6 @@ export interface ClineSayTool {
 	isOutsideWorkspace?: boolean
 	isProtected?: boolean
 	additionalFileCount?: number // Number of additional files in the same read_file request
-	search?: string
-	replace?: string
-	useRegex?: boolean
-	ignoreCase?: boolean
-	startLine?: number
-	endLine?: number
 	lineNumber?: number
 	query?: string
 	batchFiles?: Array<{
@@ -358,12 +405,20 @@ export interface ClineSayTool {
 		changeCount: number
 		key: string
 		content: string
+		// Per-file unified diff statistics computed by the extension
+		diffStats?: { added: number; removed: number }
 		diffs?: Array<{
 			content: string
 			startLine?: number
 		}>
 	}>
 	question?: string
+	imageData?: string // Base64 encoded image data for generated images
+	// Properties for runSlashCommand tool
+	command?: string
+	args?: string
+	source?: string
+	description?: string
 }
 
 // Must keep in sync with system prompt.
@@ -372,6 +427,7 @@ export const browserActions = [
 	"click",
 	"hover",
 	"type",
+	"press",
 	"scroll_down",
 	"scroll_up",
 	"resize",
@@ -385,6 +441,7 @@ export interface ClineSayBrowserAction {
 	coordinate?: string
 	size?: string
 	text?: string
+	executedCoordinate?: string
 }
 
 export type BrowserActionResult = {
@@ -392,6 +449,8 @@ export type BrowserActionResult = {
 	logs?: string
 	currentUrl?: string
 	currentMousePosition?: string
+	viewportWidth?: number
+	viewportHeight?: number
 }
 
 export interface ClineAskUseMcpServer {

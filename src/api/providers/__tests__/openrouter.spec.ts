@@ -27,7 +27,19 @@ vitest.mock("../fetchers/modelCache", () => ({
 				cacheReadsPrice: 0.3,
 				description: "Claude 3.7 Sonnet",
 				thinking: false,
-				supportsComputerUse: true,
+			},
+			"anthropic/claude-sonnet-4.5": {
+				maxTokens: 8192,
+				contextWindow: 200000,
+				supportsImages: true,
+				supportsPromptCache: true,
+				supportsNativeTools: true,
+				inputPrice: 3,
+				outputPrice: 15,
+				cacheWritesPrice: 3.75,
+				cacheReadsPrice: 0.3,
+				description: "Claude 4.5 Sonnet",
+				thinking: false,
 			},
 			"anthropic/claude-3.7-sonnet:thinking": {
 				maxTokens: 128000,
@@ -39,7 +51,6 @@ vitest.mock("../fetchers/modelCache", () => ({
 				cacheWritesPrice: 3.75,
 				cacheReadsPrice: 0.3,
 				description: "Claude 3.7 Sonnet with thinking",
-				supportsComputerUse: true,
 			},
 		})
 	}),
@@ -85,8 +96,9 @@ describe("OpenRouterHandler", () => {
 		it("returns default model info when options are not provided", async () => {
 			const handler = new OpenRouterHandler({})
 			const result = await handler.fetchModel()
-			expect(result.id).toBe("anthropic/claude-sonnet-4")
+			expect(result.id).toBe("anthropic/claude-sonnet-4.5")
 			expect(result.info.supportsPromptCache).toBe(true)
+			expect(result.info.supportsNativeTools).toBe(true)
 		})
 
 		it("honors custom maxTokens for thinking models", async () => {
@@ -98,9 +110,11 @@ describe("OpenRouterHandler", () => {
 			})
 
 			const result = await handler.fetchModel()
-			expect(result.maxTokens).toBe(128000) // Use actual implementation value
-			expect(result.reasoningBudget).toBeUndefined() // Use actual implementation value
-			expect(result.temperature).toBe(0) // Use actual implementation value
+			// With the new clamping logic, 128000 tokens (64% of 200000 context window)
+			// gets clamped to 20% of context window: 200000 * 0.2 = 40000
+			expect(result.maxTokens).toBe(40000)
+			expect(result.reasoningBudget).toBeUndefined()
+			expect(result.temperature).toBe(0)
 		})
 
 		it("does not honor custom maxTokens for non-thinking models", async () => {

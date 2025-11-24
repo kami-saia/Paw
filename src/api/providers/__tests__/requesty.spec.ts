@@ -31,7 +31,6 @@ vitest.mock("../fetchers/modelCache", () => ({
 				contextWindow: 200000,
 				supportsImages: true,
 				supportsPromptCache: true,
-				supportsComputerUse: true,
 				inputPrice: 3,
 				outputPrice: 15,
 				cacheWritesPrice: 3.75,
@@ -65,6 +64,21 @@ describe("RequestyHandler", () => {
 		})
 	})
 
+	it("can use a base URL instead of the default", () => {
+		const handler = new RequestyHandler({ ...mockOptions, requestyBaseUrl: "https://custom.requesty.ai/v1" })
+		expect(handler).toBeInstanceOf(RequestyHandler)
+
+		expect(OpenAI).toHaveBeenCalledWith({
+			baseURL: "https://custom.requesty.ai/v1",
+			apiKey: mockOptions.requestyApiKey,
+			defaultHeaders: {
+				"HTTP-Referer": "https://github.com/RooVetGit/Roo-Cline",
+				"X-Title": "Roo Code",
+				"User-Agent": `RooCode/${Package.version}`,
+			},
+		})
+	})
+
 	describe("fetchModel", () => {
 		it("returns correct model info when options are provided", async () => {
 			const handler = new RequestyHandler(mockOptions)
@@ -77,7 +91,6 @@ describe("RequestyHandler", () => {
 					contextWindow: 200000,
 					supportsImages: true,
 					supportsPromptCache: true,
-					supportsComputerUse: true,
 					inputPrice: 3,
 					outputPrice: 15,
 					cacheWritesPrice: 3.75,
@@ -98,7 +111,6 @@ describe("RequestyHandler", () => {
 					contextWindow: 200000,
 					supportsImages: true,
 					supportsPromptCache: true,
-					supportsComputerUse: true,
 					inputPrice: 3,
 					outputPrice: 15,
 					cacheWritesPrice: 3.75,

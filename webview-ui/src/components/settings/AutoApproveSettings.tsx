@@ -1,15 +1,18 @@
 import { HTMLAttributes, useState } from "react"
-import { X } from "lucide-react"
+import { X, CheckCheck } from "lucide-react"
+import { Trans } from "react-i18next"
+import { Package } from "@roo/package"
 
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { VSCodeCheckbox } from "@vscode/webview-ui-toolkit/react"
 import { vscode } from "@/utils/vscode"
-import { Button, Input, Slider, StandardTooltip } from "@/components/ui"
+import { Button, Input, Slider } from "@/components/ui"
 
 import { SetCachedStateField } from "./types"
 import { SectionHeader } from "./SectionHeader"
 import { Section } from "./Section"
 import { AutoApproveToggle } from "./AutoApproveToggle"
+import { MaxLimitInputs } from "./MaxLimitInputs"
 import { useExtensionState } from "@/context/ExtensionStateContext"
 import { useAutoApprovalState } from "@/hooks/useAutoApprovalState"
 import { useAutoApprovalToggles } from "@/hooks/useAutoApprovalToggles"
@@ -31,6 +34,8 @@ type AutoApproveSettingsProps = HTMLAttributes<HTMLDivElement> & {
 	alwaysAllowUpdateTodoList?: boolean
 	followupAutoApproveTimeoutMs?: number
 	allowedCommands?: string[]
+	allowedMaxRequests?: number | undefined
+	allowedMaxCost?: number | undefined
 	deniedCommands?: string[]
 	setCachedStateField: SetCachedStateField<
 		| "alwaysAllowReadOnly"
@@ -48,6 +53,8 @@ type AutoApproveSettingsProps = HTMLAttributes<HTMLDivElement> & {
 		| "alwaysAllowFollowupQuestions"
 		| "followupAutoApproveTimeoutMs"
 		| "allowedCommands"
+		| "allowedMaxRequests"
+		| "allowedMaxCost"
 		| "deniedCommands"
 		| "alwaysAllowUpdateTodoList"
 	>
@@ -70,6 +77,8 @@ export const AutoApproveSettings = ({
 	followupAutoApproveTimeoutMs = 60000,
 	alwaysAllowUpdateTodoList,
 	allowedCommands,
+	allowedMaxRequests,
+	allowedMaxCost,
 	deniedCommands,
 	setCachedStateField,
 	...props
@@ -81,7 +90,7 @@ export const AutoApproveSettings = ({
 
 	const toggles = useAutoApprovalToggles()
 
-	const { hasEnabledOptions, effectiveAutoApprovalEnabled } = useAutoApprovalState(toggles, autoApprovalEnabled)
+	const { effectiveAutoApprovalEnabled } = useAutoApprovalState(toggles, autoApprovalEnabled)
 
 	const handleAddCommand = () => {
 		const currentCommands = allowedCommands ?? []
@@ -90,7 +99,7 @@ export const AutoApproveSettings = ({
 			const newCommands = [...currentCommands, commandInput]
 			setCachedStateField("allowedCommands", newCommands)
 			setCommandInput("")
-			vscode.postMessage({ type: "allowedCommands", commands: newCommands })
+			vscode.postMessage({ type: "updateSettings", updatedSettings: { allowedCommands: newCommands } })
 		}
 	}
 
@@ -101,57 +110,77 @@ export const AutoApproveSettings = ({
 			const newCommands = [...currentCommands, deniedCommandInput]
 			setCachedStateField("deniedCommands", newCommands)
 			setDeniedCommandInput("")
-			vscode.postMessage({ type: "deniedCommands", commands: newCommands })
+			vscode.postMessage({ type: "updateSettings", updatedSettings: { deniedCommands: newCommands } })
 		}
 	}
 
 	return (
 		<div {...props}>
-			<SectionHeader description={t("settings:autoApprove.description")}>
+			<SectionHeader>
 				<div className="flex items-center gap-2">
-					{!hasEnabledOptions ? (
-						<StandardTooltip content={t("settings:autoApprove.selectOptionsFirst")}>
-							<VSCodeCheckbox
-								checked={effectiveAutoApprovalEnabled}
-								disabled={!hasEnabledOptions}
-								aria-label={t("settings:autoApprove.disabledAriaLabel")}
-								onChange={() => {
-									// Do nothing when no options are enabled
-									return
-								}}
-							/>
-						</StandardTooltip>
-					) : (
-						<VSCodeCheckbox
-							checked={effectiveAutoApprovalEnabled}
-							disabled={!hasEnabledOptions}
-							aria-label={t("settings:autoApprove.toggleAriaLabel")}
-							onChange={() => {
-								const newValue = !(autoApprovalEnabled ?? false)
-								setAutoApprovalEnabled(newValue)
-								vscode.postMessage({ type: "autoApprovalEnabled", bool: newValue })
-							}}
-						/>
-					)}
-					<span className="codicon codicon-check w-4" />
+					<CheckCheck className="w-4 h-4" />
 					<div>{t("settings:sections.autoApprove")}</div>
 				</div>
 			</SectionHeader>
 
 			<Section>
-				<AutoApproveToggle
-					alwaysAllowReadOnly={alwaysAllowReadOnly}
-					alwaysAllowWrite={alwaysAllowWrite}
-					alwaysAllowBrowser={alwaysAllowBrowser}
-					alwaysApproveResubmit={alwaysApproveResubmit}
-					alwaysAllowMcp={alwaysAllowMcp}
-					alwaysAllowModeSwitch={alwaysAllowModeSwitch}
-					alwaysAllowSubtasks={alwaysAllowSubtasks}
-					alwaysAllowExecute={alwaysAllowExecute}
-					alwaysAllowFollowupQuestions={alwaysAllowFollowupQuestions}
-					alwaysAllowUpdateTodoList={alwaysAllowUpdateTodoList}
-					onToggle={(key, value) => setCachedStateField(key, value)}
-				/>
+				<div className="space-y-4">
+					<VSCodeCheckbox
+						checked={effectiveAutoApprovalEnabled}
+						aria-label={t("settings:autoApprove.toggleAriaLabel")}
+						onChange={() => {
+							const newValue = !(autoApprovalEnabled ?? false)
+							setAutoApprovalEnabled(newValue)
+							vscode.postMessage({ type: "autoApprovalEnabled", bool: newValue })
+						}}>
+						<span className="font-medium">{t("settings:autoApprove.enabled")}</span>
+					</VSCodeCheckbox>
+					<div className="text-vscode-descriptionForeground text-sm mt-1">
+						<p>{t("settings:autoApprove.description")}</p>
+						<p>
+							<Trans
+								i18nKey="settings:autoApprove.toggleShortcut"
+								components={{
+									SettingsLink: (
+										<a
+											href="#"
+											className="text-vscode-textLink-foreground hover:underline cursor-pointer"
+											onClick={(e) => {
+												e.preventDefault()
+												// Send message to open keyboard shortcuts with search for toggle command
+												vscode.postMessage({
+													type: "openKeyboardShortcuts",
+													text: `${Package.name}.toggleAutoApprove`,
+												})
+											}}
+										/>
+									),
+								}}
+							/>
+						</p>
+					</div>
+
+					<AutoApproveToggle
+						alwaysAllowReadOnly={alwaysAllowReadOnly}
+						alwaysAllowWrite={alwaysAllowWrite}
+						alwaysAllowBrowser={alwaysAllowBrowser}
+						alwaysApproveResubmit={alwaysApproveResubmit}
+						alwaysAllowMcp={alwaysAllowMcp}
+						alwaysAllowModeSwitch={alwaysAllowModeSwitch}
+						alwaysAllowSubtasks={alwaysAllowSubtasks}
+						alwaysAllowExecute={alwaysAllowExecute}
+						alwaysAllowFollowupQuestions={alwaysAllowFollowupQuestions}
+						alwaysAllowUpdateTodoList={alwaysAllowUpdateTodoList}
+						onToggle={(key, value) => setCachedStateField(key, value)}
+					/>
+
+					<MaxLimitInputs
+						allowedMaxRequests={allowedMaxRequests}
+						allowedMaxCost={allowedMaxCost}
+						onMaxRequestsChange={(value) => setCachedStateField("allowedMaxRequests", value)}
+						onMaxCostChange={(value) => setCachedStateField("allowedMaxCost", value)}
+					/>
+				</div>
 
 				{/* ADDITIONAL SETTINGS */}
 
@@ -312,7 +341,11 @@ export const AutoApproveSettings = ({
 									onClick={() => {
 										const newCommands = (allowedCommands ?? []).filter((_, i) => i !== index)
 										setCachedStateField("allowedCommands", newCommands)
-										vscode.postMessage({ type: "allowedCommands", commands: newCommands })
+
+										vscode.postMessage({
+											type: "updateSettings",
+											updatedSettings: { allowedCommands: newCommands },
+										})
 									}}>
 									<div className="flex flex-row items-center gap-1">
 										<div>{cmd}</div>
@@ -363,7 +396,11 @@ export const AutoApproveSettings = ({
 									onClick={() => {
 										const newCommands = (deniedCommands ?? []).filter((_, i) => i !== index)
 										setCachedStateField("deniedCommands", newCommands)
-										vscode.postMessage({ type: "deniedCommands", commands: newCommands })
+
+										vscode.postMessage({
+											type: "updateSettings",
+											updatedSettings: { deniedCommands: newCommands },
+										})
 									}}>
 									<div className="flex flex-row items-center gap-1">
 										<div>{cmd}</div>

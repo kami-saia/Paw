@@ -21,13 +21,23 @@ import {
 	PopoverTrigger,
 	Button,
 } from "@src/components/ui"
+import { useEscapeKey } from "@src/hooks/useEscapeKey"
 
 import { ModelInfoView } from "./ModelInfoView"
 import { ApiErrorMessage } from "./ApiErrorMessage"
 
 type ModelIdKey = keyof Pick<
 	ProviderSettings,
-	"glamaModelId" | "openRouterModelId" | "unboundModelId" | "requestyModelId" | "openAiModelId" | "litellmModelId"
+	| "glamaModelId"
+	| "openRouterModelId"
+	| "unboundModelId"
+	| "requestyModelId"
+	| "openAiModelId"
+	| "litellmModelId"
+	| "deepInfraModelId"
+	| "ioIntelligenceModelId"
+	| "vercelAiGatewayModelId"
+	| "apiModelId"
 >
 
 interface ModelPickerProps {
@@ -37,7 +47,11 @@ interface ModelPickerProps {
 	serviceName: string
 	serviceUrl: string
 	apiConfiguration: ProviderSettings
-	setApiConfigurationField: <K extends keyof ProviderSettings>(field: K, value: ProviderSettings[K]) => void
+	setApiConfigurationField: <K extends keyof ProviderSettings>(
+		field: K,
+		value: ProviderSettings[K],
+		isUserAction?: boolean,
+	) => void
 	organizationAllowList: OrganizationAllowList
 	errorMessage?: string
 }
@@ -62,13 +76,30 @@ export const ModelPicker = ({
 	const selectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 	const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+	const { id: selectedModelId, info: selectedModelInfo } = useSelectedModel(apiConfiguration)
+
 	const modelIds = useMemo(() => {
 		const filteredModels = filterModels(models, apiConfiguration.apiProvider, organizationAllowList)
 
-		return Object.keys(filteredModels ?? {}).sort((a, b) => a.localeCompare(b))
-	}, [models, apiConfiguration.apiProvider, organizationAllowList])
+		// Include the currently selected model even if deprecated (so users can see what they have selected)
+		// But filter out other deprecated models from being newly selectable
+		const availableModels = Object.entries(filteredModels ?? {})
+			.filter(([modelId, modelInfo]) => {
+				// Always include the currently selected model
+				if (modelId === selectedModelId) return true
+				// Filter out deprecated models that aren't currently selected
+				return !modelInfo.deprecated
+			})
+			.reduce(
+				(acc, [modelId, modelInfo]) => {
+					acc[modelId] = modelInfo
+					return acc
+				},
+				{} as Record<string, ModelInfo>,
+			)
 
-	const { id: selectedModelId, info: selectedModelInfo } = useSelectedModel(apiConfiguration)
+		return Object.keys(availableModels).sort((a, b) => a.localeCompare(b))
+	}, [models, apiConfiguration.apiProvider, organizationAllowList, selectedModelId])
 
 	const [searchValue, setSearchValue] = useState("")
 
@@ -115,7 +146,7 @@ export const ModelPicker = ({
 	useEffect(() => {
 		if (!selectedModelId && !isInitialized.current) {
 			const initialValue = modelIds.includes(selectedModelId) ? selectedModelId : defaultModelId
-			setApiConfigurationField(modelIdKey, initialValue)
+			setApiConfigurationField(modelIdKey, initialValue, false) // false = automatic initialization
 		}
 
 		isInitialized.current = true
@@ -133,6 +164,9 @@ export const ModelPicker = ({
 		}
 	}, [])
 
+	// Use the shared ESC key handler hook
+	useEscapeKey(open, () => setOpen(false))
+
 	return (
 		<>
 			<div>
@@ -145,7 +179,7 @@ export const ModelPicker = ({
 							aria-expanded={open}
 							className="w-full justify-between"
 							data-testid="model-picker-button">
-							<div>{selectedModelId ?? t("settings:common.select")}</div>
+							<div className="truncate">{selectedModelId ?? t("settings:common.select")}</div>
 							<ChevronsUpDown className="opacity-50" />
 						</Button>
 					</PopoverTrigger>
@@ -184,7 +218,9 @@ export const ModelPicker = ({
 											value={model}
 											onSelect={onSelect}
 											data-testid={`model-option-${model}`}>
-											{model}
+											<span className="truncate" title={model}>
+												{model}
+											</span>
 											<Check
 												className={cn(
 													"size-4 p-0.5 ml-auto",
@@ -207,7 +243,10 @@ export const ModelPicker = ({
 				</Popover>
 			</div>
 			{errorMessage && <ApiErrorMessage errorMessage={errorMessage} />}
-			{selectedModelId && selectedModelInfo && (
+			{selectedModelInfo?.deprecated && (
+				<ApiErrorMessage errorMessage={t("settings:validation.modelDeprecated")} />
+			)}
+			{selectedModelId && selectedModelInfo && !selectedModelInfo.deprecated && (
 				<ModelInfoView
 					apiProvider={apiConfiguration.apiProvider}
 					selectedModelId={selectedModelId}

@@ -1,3 +1,4 @@
+// Force rebuild
 import { z } from "zod"
 
 /**
@@ -43,6 +44,74 @@ export const clineAsks = [
 export const clineAskSchema = z.enum(clineAsks)
 
 export type ClineAsk = z.infer<typeof clineAskSchema>
+/**
+ * IdleAsk
+ *
+ * Asks that put the task into an "idle" state.
+ */
+
+export const idleAsks = [
+	"completion_result",
+	"api_req_failed",
+	"resume_completed_task",
+	"mistake_limit_reached",
+	"auto_approval_max_req_reached",
+] as const satisfies readonly ClineAsk[]
+
+export type IdleAsk = (typeof idleAsks)[number]
+
+export function isIdleAsk(ask: ClineAsk): ask is IdleAsk {
+	return (idleAsks as readonly ClineAsk[]).includes(ask)
+}
+
+/**
+ * ResumableAsk
+ *
+ * Asks that put the task into an "resumable" state.
+ */
+
+export const resumableAsks = ["resume_task"] as const satisfies readonly ClineAsk[]
+
+export type ResumableAsk = (typeof resumableAsks)[number]
+
+export function isResumableAsk(ask: ClineAsk): ask is ResumableAsk {
+	return (resumableAsks as readonly ClineAsk[]).includes(ask)
+}
+
+/**
+ * InteractiveAsk
+ *
+ * Asks that put the task into an "user interaction required" state.
+ */
+
+export const interactiveAsks = [
+	"followup",
+	"command",
+	"tool",
+	"browser_action_launch",
+	"use_mcp_server",
+] as const satisfies readonly ClineAsk[]
+
+export type InteractiveAsk = (typeof interactiveAsks)[number]
+
+export function isInteractiveAsk(ask: ClineAsk): ask is InteractiveAsk {
+	return (interactiveAsks as readonly ClineAsk[]).includes(ask)
+}
+
+/**
+ * NonBlockingAsk
+ *
+ * Asks that are not associated with an actual approval, and are only used
+ * to update chat messages.
+ */
+
+export const nonBlockingAsks = ["command_output"] as const satisfies readonly ClineAsk[]
+
+export type NonBlockingAsk = (typeof nonBlockingAsks)[number]
+
+export function isNonBlockingAsk(ask: ClineAsk): ask is NonBlockingAsk {
+	return (nonBlockingAsks as readonly ClineAsk[]).includes(ask)
+}
 
 /**
  * ClineSay
@@ -89,6 +158,7 @@ export const clineSays = [
 	"api_req_retry_delayed",
 	"api_req_deleted",
 	"text",
+	"image",
 	"reasoning",
 	"completion_result",
 	"user_feedback",
@@ -97,6 +167,7 @@ export const clineSays = [
 	"shell_integration_warning",
 	"browser_action",
 	"browser_action_result",
+	"browser_session_status",
 	"mcp_server_request_started",
 	"mcp_server_response",
 	"subtask_result",
@@ -156,6 +227,7 @@ export const clineMessageSchema = z.object({
 	contextCondense: contextCondenseSchema.optional(),
 	isProtected: z.boolean().optional(),
 	apiProtocol: z.union([z.literal("openai"), z.literal("anthropic")]).optional(),
+	isAnswered: z.boolean().optional(),
 })
 
 export type ClineMessage = z.infer<typeof clineMessageSchema>
@@ -174,3 +246,16 @@ export const tokenUsageSchema = z.object({
 })
 
 export type TokenUsage = z.infer<typeof tokenUsageSchema>
+
+/**
+ * QueuedMessage
+ */
+
+export const queuedMessageSchema = z.object({
+	timestamp: z.number(),
+	id: z.string(),
+	text: z.string(),
+	images: z.array(z.string()).optional(),
+})
+
+export type QueuedMessage = z.infer<typeof queuedMessageSchema>

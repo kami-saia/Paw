@@ -15,6 +15,8 @@ import { DEFAULT_HEADERS } from "./constants"
 import { getModels } from "./fetchers/modelCache"
 import { BaseProvider } from "./base-provider"
 import type { SingleCompletionHandler, ApiHandlerCreateMessageMetadata } from "../index"
+import { toRequestyServiceUrl } from "../../shared/utils/requesty"
+import { handleOpenAIError } from "./utils/openai-error-handler"
 
 // Requesty usage includes an extra field for Anthropic use cases.
 // Safely cast the prompt token details section to the appropriate structure.
@@ -24,6 +26,16 @@ interface RequestyUsage extends OpenAI.CompletionUsage {
 		cached_tokens?: number
 	}
 	total_cost?: number
+}
+
+type RequestyChatCompletionParamsStreaming = OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming & {
+	requesty?: {
+		trace_id?: string
+		extra?: {
+			mode?: string
+		}
+	}
+	thinking?: AnthropicReasoningParams
 }
 
 type RequestyChatCompletionParams = OpenAI.Chat.ChatCompletionCreateParams & {
@@ -40,21 +52,26 @@ export class RequestyHandler extends BaseProvider implements SingleCompletionHan
 	protected options: ApiHandlerOptions
 	protected models: ModelRecord = {}
 	private client: OpenAI
+	private baseURL: string
+	private readonly providerName = "Requesty"
 
 	constructor(options: ApiHandlerOptions) {
 		super()
 
 		this.options = options
+		this.baseURL = toRequestyServiceUrl(options.requestyBaseUrl)
+
+		const apiKey = this.options.requestyApiKey ?? "not-provided"
 
 		this.client = new OpenAI({
-			baseURL: "https://router.requesty.ai/v1",
-			apiKey: this.options.requestyApiKey ?? "not-provided",
+			baseURL: this.baseURL,
+			apiKey: apiKey,
 			defaultHeaders: DEFAULT_HEADERS,
 		})
 	}
 
 	public async fetchModel() {
-		this.models = await getModels({ provider: "requesty" })
+		this.models = await getModels({ provider: "requesty", baseUrl: this.baseURL })
 		return this.getModel()
 	}
 
@@ -78,9 +95,9 @@ export class RequestyHandler extends BaseProvider implements SingleCompletionHan
 		const outputTokens = requestyUsage?.completion_tokens || 0
 		const cacheWriteTokens = requestyUsage?.prompt_tokens_details?.caching_tokens || 0
 		const cacheReadTokens = requestyUsage?.prompt_tokens_details?.cached_tokens || 0
-		const totalCost = modelInfo
+		const { totalCost } = modelInfo
 			? calculateApiCostOpenAI(modelInfo, inputTokens, outputTokens, cacheWriteTokens, cacheReadTokens)
-			: 0
+			: { totalCost: 0 }
 
 		return {
 			type: "usage",
@@ -111,19 +128,30 @@ export class RequestyHandler extends BaseProvider implements SingleCompletionHan
 			...convertToOpenAiMessages(messages),
 		]
 
-		const completionParams: RequestyChatCompletionParams = {
+		// Map extended efforts to OpenAI Chat Completions-accepted values (omit unsupported)
+		const allowedEffort = (["low", "medium", "high"] as const).includes(reasoning_effort as any)
+			? (reasoning_effort as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming["reasoning_effort"])
+			: undefined
+
+		const completionParams: RequestyChatCompletionParamsStreaming = {
 			messages: openAiMessages,
 			model,
 			max_tokens,
 			temperature,
-			...(reasoning_effort && { reasoning_effort }),
+			...(allowedEffort && { reasoning_effort: allowedEffort }),
 			...(thinking && { thinking }),
 			stream: true,
 			stream_options: { include_usage: true },
 			requesty: { trace_id: metadata?.taskId, extra: { mode: metadata?.mode } },
 		}
 
-		const stream = await this.client.chat.completions.create(completionParams)
+		let stream
+		try {
+			// With streaming params type, SDK returns an async iterable stream
+			stream = await this.client.chat.completions.create(completionParams)
+		} catch (error) {
+			throw handleOpenAIError(error, this.providerName)
+		}
 		let lastUsage: any = undefined
 
 		for await (const chunk of stream) {
@@ -159,7 +187,12 @@ export class RequestyHandler extends BaseProvider implements SingleCompletionHan
 			temperature: temperature,
 		}
 
-		const response: OpenAI.Chat.ChatCompletion = await this.client.chat.completions.create(completionParams)
+		let response: OpenAI.Chat.ChatCompletion
+		try {
+			response = await this.client.chat.completions.create(completionParams)
+		} catch (error) {
+			throw handleOpenAIError(error, this.providerName)
+		}
 		return response.choices[0]?.message.content || ""
 	}
 }

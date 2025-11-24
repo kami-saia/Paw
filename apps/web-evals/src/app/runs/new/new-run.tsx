@@ -1,23 +1,22 @@
 "use client"
 
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useState } from "react"
 import { useRouter } from "next/navigation"
 import { z } from "zod"
 import { useQuery } from "@tanstack/react-query"
 import { useForm, FormProvider } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import fuzzysort from "fuzzysort"
 import { toast } from "sonner"
-import { X, Rocket, Check, ChevronsUpDown, SlidersHorizontal, Book, CircleCheck } from "lucide-react"
+import { X, Rocket, Check, ChevronsUpDown, SlidersHorizontal } from "lucide-react"
 
 import { globalSettingsSchema, providerSettingsSchema, EVALS_SETTINGS, getModelId } from "@roo-code/types"
 
 import { createRun } from "@/actions/runs"
 import { getExercises } from "@/actions/exercises"
+
 import {
-	createRunSchema,
 	type CreateRun,
-	MODEL_DEFAULT,
+	createRunSchema,
 	CONCURRENCY_MIN,
 	CONCURRENCY_MAX,
 	CONCURRENCY_DEFAULT,
@@ -26,14 +25,19 @@ import {
 	TIMEOUT_DEFAULT,
 } from "@/lib/schemas"
 import { cn } from "@/lib/utils"
+
 import { useOpenRouterModels } from "@/hooks/use-open-router-models"
+import { useRooCodeCloudModels } from "@/hooks/use-roo-code-cloud-models"
+
 import {
 	Button,
+	Checkbox,
 	FormControl,
 	FormField,
 	FormItem,
 	FormLabel,
 	FormMessage,
+	Input,
 	Textarea,
 	Tabs,
 	TabsList,
@@ -48,12 +52,9 @@ import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
-	ScrollArea,
 	Slider,
-	Dialog,
-	DialogContent,
-	DialogTitle,
-	DialogFooter,
+	Label,
+	FormDescription,
 } from "@/components/ui"
 
 import { SettingsDiff } from "./settings-diff"
@@ -61,26 +62,30 @@ import { SettingsDiff } from "./settings-diff"
 export function NewRun() {
 	const router = useRouter()
 
-	const [mode, setMode] = useState<"openrouter" | "settings">("openrouter")
-	const [modelSearchValue, setModelSearchValue] = useState("")
+	const [provider, setModelSource] = useState<"roo" | "openrouter" | "other">("roo")
 	const [modelPopoverOpen, setModelPopoverOpen] = useState(false)
+	const [useNativeToolProtocol, setUseNativeToolProtocol] = useState(true)
 
-	const modelSearchResultsRef = useRef<Map<string, number>>(new Map())
-	const modelSearchValueRef = useRef("")
+	const openRouter = useOpenRouterModels()
+	const rooCodeCloud = useRooCodeCloudModels()
+	const models = provider === "openrouter" ? openRouter.data : rooCodeCloud.data
+	const searchValue = provider === "openrouter" ? openRouter.searchValue : rooCodeCloud.searchValue
+	const setSearchValue = provider === "openrouter" ? openRouter.setSearchValue : rooCodeCloud.setSearchValue
+	const onFilter = provider === "openrouter" ? openRouter.onFilter : rooCodeCloud.onFilter
 
-	const models = useOpenRouterModels()
 	const exercises = useQuery({ queryKey: ["getExercises"], queryFn: () => getExercises() })
 
 	const form = useForm<CreateRun>({
 		resolver: zodResolver(createRunSchema),
 		defaultValues: {
-			model: MODEL_DEFAULT,
+			model: "",
 			description: "",
 			suite: "full",
 			exercises: [],
 			settings: undefined,
 			concurrency: CONCURRENCY_DEFAULT,
 			timeout: TIMEOUT_DEFAULT,
+			jobToken: "",
 		},
 	})
 
@@ -93,45 +98,32 @@ export function NewRun() {
 
 	const [model, suite, settings] = watch(["model", "suite", "settings", "concurrency"])
 
-	const [systemPromptDialogOpen, setSystemPromptDialogOpen] = useState(false)
-	const [systemPrompt, setSystemPrompt] = useState("")
-	const systemPromptRef = useRef<HTMLTextAreaElement>(null)
-
 	const onSubmit = useCallback(
 		async (values: CreateRun) => {
 			try {
-				if (mode === "openrouter") {
-					values.settings = { ...(values.settings || {}), openRouterModelId: model }
+				if (provider === "openrouter") {
+					values.settings = {
+						...(values.settings || {}),
+						apiProvider: "openrouter",
+						openRouterModelId: model,
+						toolProtocol: useNativeToolProtocol ? "native" : "xml",
+					}
+				} else if (provider === "roo") {
+					values.settings = {
+						...(values.settings || {}),
+						apiProvider: "roo",
+						apiModelId: model,
+						toolProtocol: useNativeToolProtocol ? "native" : "xml",
+					}
 				}
 
-				const { id } = await createRun({ ...values, systemPrompt })
+				const { id } = await createRun(values)
 				router.push(`/runs/${id}`)
 			} catch (e) {
 				toast.error(e instanceof Error ? e.message : "An unknown error occurred.")
 			}
 		},
-		[mode, model, router, systemPrompt],
-	)
-
-	const onFilterModels = useCallback(
-		(value: string, search: string) => {
-			if (modelSearchValueRef.current !== search) {
-				modelSearchValueRef.current = search
-				modelSearchResultsRef.current.clear()
-
-				for (const {
-					obj: { id },
-					score,
-				} of fuzzysort.go(search, models.data || [], {
-					key: "name",
-				})) {
-					modelSearchResultsRef.current.set(id, score)
-				}
-			}
-
-			return modelSearchResultsRef.current.get(value) ?? 0
-		},
-		[models.data],
+		[provider, model, router, useNativeToolProtocol],
 	)
 
 	const onSelectModel = useCallback(
@@ -139,7 +131,7 @@ export function NewRun() {
 			setValue("model", model)
 			setModelPopoverOpen(false)
 		},
-		[setValue],
+		[setValue, setModelPopoverOpen],
 	)
 
 	const onImportSettings = useCallback(
@@ -167,7 +159,6 @@ export function NewRun() {
 
 				setValue("model", getModelId(providerSettings) ?? "")
 				setValue("settings", { ...EVALS_SETTINGS, ...providerSettings, ...globalSettings })
-				setMode("settings")
 
 				event.target.value = ""
 			} catch (e) {
@@ -184,13 +175,44 @@ export function NewRun() {
 				<form
 					onSubmit={form.handleSubmit(onSubmit)}
 					className="flex flex-col justify-center divide-y divide-primary *:py-5">
-					<div className="flex flex-row justify-between gap-4">
-						{mode === "openrouter" && (
-							<FormField
-								control={form.control}
-								name="model"
-								render={() => (
-									<FormItem className="flex-1">
+					<FormField
+						control={form.control}
+						name="model"
+						render={() => (
+							<FormItem>
+								<Tabs
+									value={provider}
+									onValueChange={(value) => setModelSource(value as "roo" | "openrouter" | "other")}>
+									<TabsList className="mb-2">
+										<TabsTrigger value="roo">Roo Code Cloud</TabsTrigger>
+										<TabsTrigger value="openrouter">OpenRouter</TabsTrigger>
+										<TabsTrigger value="other">Other</TabsTrigger>
+									</TabsList>
+								</Tabs>
+
+								{provider === "other" ? (
+									<div className="space-y-2 overflow-auto">
+										<Button
+											type="button"
+											variant="secondary"
+											onClick={() => document.getElementById("json-upload")?.click()}
+											className="w-full">
+											<SlidersHorizontal />
+											Import Settings
+										</Button>
+										<input
+											id="json-upload"
+											type="file"
+											accept="application/json"
+											className="hidden"
+											onChange={onImportSettings}
+										/>
+										{settings && (
+											<SettingsDiff defaultSettings={EVALS_SETTINGS} customSettings={settings} />
+										)}
+									</div>
+								) : (
+									<>
 										<Popover open={modelPopoverOpen} onOpenChange={setModelPopoverOpen}>
 											<PopoverTrigger asChild>
 												<Button
@@ -199,25 +221,23 @@ export function NewRun() {
 													aria-expanded={modelPopoverOpen}
 													className="flex items-center justify-between">
 													<div>
-														{models.data?.find(({ id }) => id === model)?.name ||
-															model ||
-															"Select OpenRouter Model"}
+														{models?.find(({ id }) => id === model)?.name || `Select`}
 													</div>
 													<ChevronsUpDown className="opacity-50" />
 												</Button>
 											</PopoverTrigger>
 											<PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]">
-												<Command filter={onFilterModels}>
+												<Command filter={onFilter}>
 													<CommandInput
 														placeholder="Search"
-														value={modelSearchValue}
-														onValueChange={setModelSearchValue}
+														value={searchValue}
+														onValueChange={setSearchValue}
 														className="h-9"
 													/>
 													<CommandList>
 														<CommandEmpty>No model found.</CommandEmpty>
 														<CommandGroup>
-															{models.data?.map(({ id, name }) => (
+															{models?.map(({ id, name }) => (
 																<CommandItem
 																	key={id}
 																	value={id}
@@ -236,63 +256,49 @@ export function NewRun() {
 												</Command>
 											</PopoverContent>
 										</Popover>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						)}
 
-						<FormItem className="flex-1">
-							<Button
-								type="button"
-								variant="secondary"
-								onClick={() => document.getElementById("json-upload")?.click()}>
-								<SlidersHorizontal />
-								Import Settings
-							</Button>
-							<input
-								id="json-upload"
-								type="file"
-								accept="application/json"
-								className="hidden"
-								onChange={onImportSettings}
-							/>
-							{settings && (
-								<ScrollArea className="max-h-64 border rounded-sm">
-									<>
-										<div className="flex items-center gap-1 p-2 border-b">
-											<CircleCheck className="size-4 text-ring" />
-											<div className="text-sm">
-												Imported valid Roo Code settings. Showing differences from default
-												settings.
-											</div>
+										<div className="flex items-center gap-1.5">
+											<Checkbox
+												id="native"
+												checked={useNativeToolProtocol}
+												onCheckedChange={(checked) =>
+													setUseNativeToolProtocol(checked === true)
+												}
+											/>
+											<Label htmlFor="native">Use Native Tool Calls</Label>
 										</div>
-										<SettingsDiff defaultSettings={EVALS_SETTINGS} customSettings={settings} />
 									</>
-								</ScrollArea>
+								)}
+
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+
+					{provider === "roo" && (
+						<FormField
+							control={form.control}
+							name="jobToken"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Roo Code Cloud Token</FormLabel>
+									<FormControl>
+										<Input type="password" {...field} />
+									</FormControl>
+									<FormMessage />
+									<FormDescription>
+										If you have access to the Roo Code Cloud repository then you can generate a
+										token with:
+										<br />
+										<code className="text-xs">
+											pnpm --filter @roo-code-cloud/auth production:create-job-token [org]
+											[timeout]
+										</code>
+									</FormDescription>
+								</FormItem>
 							)}
-							<FormMessage />
-						</FormItem>
-
-						<Button type="button" variant="secondary" onClick={() => setSystemPromptDialogOpen(true)}>
-							<Book />
-							Override System Prompt
-						</Button>
-
-						<Dialog open={systemPromptDialogOpen} onOpenChange={setSystemPromptDialogOpen}>
-							<DialogContent>
-								<DialogTitle>Override System Prompt</DialogTitle>
-								<Textarea
-									ref={systemPromptRef}
-									value={systemPrompt}
-									onChange={(e) => setSystemPrompt(e.target.value)}
-								/>
-								<DialogFooter>
-									<Button onClick={() => setSystemPromptDialogOpen(false)}>Done</Button>
-								</DialogFooter>
-							</DialogContent>
-						</Dialog>
-					</div>
+						/>
+					)}
 
 					<FormField
 						control={form.control}

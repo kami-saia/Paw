@@ -1,6 +1,12 @@
 export type ApiStream = AsyncGenerator<ApiStreamChunk>
 
-export type ApiStreamChunk = ApiStreamTextChunk | ApiStreamUsageChunk | ApiStreamReasoningChunk | ApiStreamError
+export type ApiStreamChunk =
+	| ApiStreamTextChunk
+	| ApiStreamUsageChunk
+	| ApiStreamReasoningChunk
+	| ApiStreamGroundingChunk
+	| ApiStreamToolCallChunk
+	| ApiStreamError
 
 export interface ApiStreamError {
 	type: "error"
@@ -26,4 +32,22 @@ export interface ApiStreamUsageChunk {
 	cacheReadTokens?: number
 	reasoningTokens?: number
 	totalCost?: number
+}
+
+export interface ApiStreamGroundingChunk {
+	type: "grounding"
+	sources: GroundingSource[]
+}
+
+export interface ApiStreamToolCallChunk {
+	type: "tool_call"
+	id: string
+	name: string
+	arguments: string
+}
+
+export interface GroundingSource {
+	title: string
+	url: string
+	snippet?: string
 }

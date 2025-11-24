@@ -20,11 +20,16 @@ type ContextManagementSettingsProps = HTMLAttributes<HTMLDivElement> & {
 	maxWorkspaceFiles: number
 	showRooIgnoredFiles?: boolean
 	maxReadFileLine?: number
+	maxImageFileSize?: number
+	maxTotalImageSize?: number
 	maxConcurrentFileReads?: number
 	profileThresholds?: Record<string, number>
 	includeDiagnosticMessages?: boolean
 	maxDiagnosticMessages?: number
 	writeDelayMs: number
+	includeCurrentTime?: boolean
+	includeCurrentCost?: boolean
+	maxGitStatusFiles?: number
 	setCachedStateField: SetCachedStateField<
 		| "autoCondenseContext"
 		| "autoCondenseContextPercent"
@@ -32,11 +37,16 @@ type ContextManagementSettingsProps = HTMLAttributes<HTMLDivElement> & {
 		| "maxWorkspaceFiles"
 		| "showRooIgnoredFiles"
 		| "maxReadFileLine"
+		| "maxImageFileSize"
+		| "maxTotalImageSize"
 		| "maxConcurrentFileReads"
 		| "profileThresholds"
 		| "includeDiagnosticMessages"
 		| "maxDiagnosticMessages"
 		| "writeDelayMs"
+		| "includeCurrentTime"
+		| "includeCurrentCost"
+		| "maxGitStatusFiles"
 	>
 }
 
@@ -49,11 +59,16 @@ export const ContextManagementSettings = ({
 	showRooIgnoredFiles,
 	setCachedStateField,
 	maxReadFileLine,
+	maxImageFileSize,
+	maxTotalImageSize,
 	maxConcurrentFileReads,
 	profileThresholds = {},
 	includeDiagnosticMessages,
 	maxDiagnosticMessages,
 	writeDelayMs,
+	includeCurrentTime,
+	includeCurrentCost,
+	maxGitStatusFiles,
 	className,
 	...props
 }: ContextManagementSettingsProps) => {
@@ -81,11 +96,9 @@ export const ContextManagementSettings = ({
 				...profileThresholds,
 				[selectedThresholdProfile]: value,
 			}
+
 			setCachedStateField("profileThresholds", newThresholds)
-			vscode.postMessage({
-				type: "profileThresholds",
-				values: newThresholds,
-			})
+			vscode.postMessage({ type: "updateSettings", updatedSettings: { profileThresholds: newThresholds } })
 		}
 	}
 	return (
@@ -133,6 +146,26 @@ export const ContextManagementSettings = ({
 					</div>
 					<div className="text-vscode-descriptionForeground text-sm mt-1">
 						{t("settings:contextManagement.workspaceFiles.description")}
+					</div>
+				</div>
+
+				<div>
+					<span className="block font-medium mb-1">
+						{t("settings:contextManagement.maxGitStatusFiles.label")}
+					</span>
+					<div className="flex items-center gap-2">
+						<Slider
+							min={0}
+							max={50}
+							step={1}
+							value={[maxGitStatusFiles ?? 0]}
+							onValueChange={([value]) => setCachedStateField("maxGitStatusFiles", value)}
+							data-testid="max-git-status-files-slider"
+						/>
+						<span className="w-10">{maxGitStatusFiles ?? 0}</span>
+					</div>
+					<div className="text-vscode-descriptionForeground text-sm mt-1">
+						{t("settings:contextManagement.maxGitStatusFiles.description")}
 					</div>
 				</div>
 
@@ -203,6 +236,62 @@ export const ContextManagementSettings = ({
 					</div>
 					<div className="text-vscode-descriptionForeground text-sm mt-2">
 						{t("settings:contextManagement.maxReadFile.description")}
+					</div>
+				</div>
+
+				<div>
+					<div className="flex flex-col gap-2">
+						<span className="font-medium">{t("settings:contextManagement.maxImageFileSize.label")}</span>
+						<div className="flex items-center gap-4">
+							<Input
+								type="number"
+								pattern="[0-9]*"
+								className="w-24 bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border px-2 py-1 rounded text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+								value={maxImageFileSize ?? 5}
+								min={1}
+								max={100}
+								onChange={(e) => {
+									const newValue = parseInt(e.target.value, 10)
+									if (!isNaN(newValue) && newValue >= 1 && newValue <= 100) {
+										setCachedStateField("maxImageFileSize", newValue)
+									}
+								}}
+								onClick={(e) => e.currentTarget.select()}
+								data-testid="max-image-file-size-input"
+							/>
+							<span>{t("settings:contextManagement.maxImageFileSize.mb")}</span>
+						</div>
+					</div>
+					<div className="text-vscode-descriptionForeground text-sm mt-2">
+						{t("settings:contextManagement.maxImageFileSize.description")}
+					</div>
+				</div>
+
+				<div>
+					<div className="flex flex-col gap-2">
+						<span className="font-medium">{t("settings:contextManagement.maxTotalImageSize.label")}</span>
+						<div className="flex items-center gap-4">
+							<Input
+								type="number"
+								pattern="[0-9]*"
+								className="w-24 bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border px-2 py-1 rounded text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+								value={maxTotalImageSize ?? 20}
+								min={1}
+								max={500}
+								onChange={(e) => {
+									const newValue = parseInt(e.target.value, 10)
+									if (!isNaN(newValue) && newValue >= 1 && newValue <= 500) {
+										setCachedStateField("maxTotalImageSize", newValue)
+									}
+								}}
+								onClick={(e) => e.currentTarget.select()}
+								data-testid="max-total-image-size-input"
+							/>
+							<span>{t("settings:contextManagement.maxTotalImageSize.mb")}</span>
+						</div>
+					</div>
+					<div className="text-vscode-descriptionForeground text-sm mt-2">
+						{t("settings:contextManagement.maxTotalImageSize.description")}
 					</div>
 				</div>
 
@@ -292,6 +381,34 @@ export const ContextManagementSettings = ({
 					</div>
 					<div className="text-vscode-descriptionForeground text-sm mt-1">
 						{t("settings:contextManagement.diagnostics.delayAfterWrite.description")}
+					</div>
+				</div>
+
+				<div>
+					<VSCodeCheckbox
+						checked={includeCurrentTime}
+						onChange={(e: any) => setCachedStateField("includeCurrentTime", e.target.checked)}
+						data-testid="include-current-time-checkbox">
+						<label className="block font-medium mb-1">
+							{t("settings:contextManagement.includeCurrentTime.label")}
+						</label>
+					</VSCodeCheckbox>
+					<div className="text-vscode-descriptionForeground text-sm mt-1 mb-3">
+						{t("settings:contextManagement.includeCurrentTime.description")}
+					</div>
+				</div>
+
+				<div>
+					<VSCodeCheckbox
+						checked={includeCurrentCost}
+						onChange={(e: any) => setCachedStateField("includeCurrentCost", e.target.checked)}
+						data-testid="include-current-cost-checkbox">
+						<label className="block font-medium mb-1">
+							{t("settings:contextManagement.includeCurrentCost.label")}
+						</label>
+					</VSCodeCheckbox>
+					<div className="text-vscode-descriptionForeground text-sm mt-1 mb-3">
+						{t("settings:contextManagement.includeCurrentCost.description")}
 					</div>
 				</div>
 			</Section>

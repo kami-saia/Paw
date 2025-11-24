@@ -1,11 +1,12 @@
 // npx vitest run api/providers/__tests__/openai.spec.ts
 
-import { OpenAiHandler } from "../openai"
+import { OpenAiHandler, getOpenAiModels } from "../openai"
 import { ApiHandlerOptions } from "../../../shared/api"
 import { Anthropic } from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 import { openAiModelInfoSaneDefaults } from "@roo-code/types"
 import { Package } from "../../../shared/package"
+import axios from "axios"
 
 const mockCreate = vitest.fn()
 
@@ -68,6 +69,13 @@ vitest.mock("openai", () => {
 	}
 })
 
+// Mock axios for getOpenAiModels tests
+vitest.mock("axios", () => ({
+	default: {
+		get: vitest.fn(),
+	},
+}))
+
 describe("OpenAiHandler", () => {
 	let handler: OpenAiHandler
 	let mockOptions: ApiHandlerOptions
@@ -107,6 +115,7 @@ describe("OpenAiHandler", () => {
 					"X-Title": "Roo Code",
 					"User-Agent": `RooCode/${Package.version}`,
 				},
+				timeout: expect.any(Number),
 			})
 		})
 	})
@@ -148,6 +157,55 @@ describe("OpenAiHandler", () => {
 			expect(usageChunk?.outputTokens).toBe(5)
 		})
 
+		it("should handle tool calls in non-streaming mode", async () => {
+			mockCreate.mockResolvedValueOnce({
+				choices: [
+					{
+						message: {
+							role: "assistant",
+							content: null,
+							tool_calls: [
+								{
+									id: "call_1",
+									type: "function",
+									function: {
+										name: "test_tool",
+										arguments: '{"arg":"value"}',
+									},
+								},
+							],
+						},
+						finish_reason: "tool_calls",
+					},
+				],
+				usage: {
+					prompt_tokens: 10,
+					completion_tokens: 5,
+					total_tokens: 15,
+				},
+			})
+
+			const handler = new OpenAiHandler({
+				...mockOptions,
+				openAiStreamingEnabled: false,
+			})
+
+			const stream = handler.createMessage(systemPrompt, messages)
+			const chunks: any[] = []
+			for await (const chunk of stream) {
+				chunks.push(chunk)
+			}
+
+			const toolCallChunks = chunks.filter((chunk) => chunk.type === "tool_call")
+			expect(toolCallChunks).toHaveLength(1)
+			expect(toolCallChunks[0]).toEqual({
+				type: "tool_call",
+				id: "call_1",
+				name: "test_tool",
+				arguments: '{"arg":"value"}',
+			})
+		})
+
 		it("should handle streaming responses", async () => {
 			const stream = handler.createMessage(systemPrompt, messages)
 			const chunks: any[] = []
@@ -159,6 +217,116 @@ describe("OpenAiHandler", () => {
 			const textChunks = chunks.filter((chunk) => chunk.type === "text")
 			expect(textChunks).toHaveLength(1)
 			expect(textChunks[0].text).toBe("Test response")
+		})
+
+		it("should handle tool calls in streaming responses", async () => {
+			mockCreate.mockImplementation(async (options) => {
+				return {
+					[Symbol.asyncIterator]: async function* () {
+						yield {
+							choices: [
+								{
+									delta: {
+										tool_calls: [
+											{
+												index: 0,
+												id: "call_1",
+												function: { name: "test_tool", arguments: "" },
+											},
+										],
+									},
+									finish_reason: null,
+								},
+							],
+						}
+						yield {
+							choices: [
+								{
+									delta: {
+										tool_calls: [{ index: 0, function: { arguments: '{"arg":' } }],
+									},
+									finish_reason: null,
+								},
+							],
+						}
+						yield {
+							choices: [
+								{
+									delta: {
+										tool_calls: [{ index: 0, function: { arguments: '"value"}' } }],
+									},
+									finish_reason: "tool_calls",
+								},
+							],
+						}
+					},
+				}
+			})
+
+			const stream = handler.createMessage(systemPrompt, messages)
+			const chunks: any[] = []
+			for await (const chunk of stream) {
+				chunks.push(chunk)
+			}
+
+			const toolCallChunks = chunks.filter((chunk) => chunk.type === "tool_call")
+			expect(toolCallChunks).toHaveLength(1)
+			expect(toolCallChunks[0]).toEqual({
+				type: "tool_call",
+				id: "call_1",
+				name: "test_tool",
+				arguments: '{"arg":"value"}',
+			})
+		})
+
+		it("should yield tool calls even when finish_reason is not set (fallback behavior)", async () => {
+			mockCreate.mockImplementation(async (options) => {
+				return {
+					[Symbol.asyncIterator]: async function* () {
+						yield {
+							choices: [
+								{
+									delta: {
+										tool_calls: [
+											{
+												index: 0,
+												id: "call_fallback",
+												function: { name: "fallback_tool", arguments: '{"test":"fallback"}' },
+											},
+										],
+									},
+									finish_reason: null,
+								},
+							],
+						}
+						// Stream ends without finish_reason being set to "tool_calls"
+						yield {
+							choices: [
+								{
+									delta: {},
+									finish_reason: "stop", // Different finish reason
+								},
+							],
+						}
+					},
+				}
+			})
+
+			const stream = handler.createMessage(systemPrompt, messages)
+			const chunks: any[] = []
+			for await (const chunk of stream) {
+				chunks.push(chunk)
+			}
+
+			// Tool calls should still be yielded via the fallback mechanism
+			const toolCallChunks = chunks.filter((chunk) => chunk.type === "tool_call")
+			expect(toolCallChunks).toHaveLength(1)
+			expect(toolCallChunks[0]).toEqual({
+				type: "tool_call",
+				id: "call_fallback",
+				name: "fallback_tool",
+				arguments: '{"test":"fallback"}',
+			})
 		})
 
 		it("should include reasoning_effort when reasoning effort is enabled", async () => {
@@ -485,7 +653,7 @@ describe("OpenAiHandler", () => {
 				{
 					model: azureOptions.openAiModelId,
 					messages: [
-						{ role: "user", content: systemPrompt },
+						{ role: "system", content: systemPrompt },
 						{ role: "user", content: "Hello!" },
 					],
 				},
@@ -609,6 +777,110 @@ describe("OpenAiHandler", () => {
 			)
 		})
 
+		it("should handle tool calls with O3 model in streaming mode", async () => {
+			const o3Handler = new OpenAiHandler(o3Options)
+
+			mockCreate.mockImplementation(async (options) => {
+				return {
+					[Symbol.asyncIterator]: async function* () {
+						yield {
+							choices: [
+								{
+									delta: {
+										tool_calls: [
+											{
+												index: 0,
+												id: "call_1",
+												function: { name: "test_tool", arguments: "" },
+											},
+										],
+									},
+									finish_reason: null,
+								},
+							],
+						}
+						yield {
+							choices: [
+								{
+									delta: {
+										tool_calls: [{ index: 0, function: { arguments: "{}" } }],
+									},
+									finish_reason: "tool_calls",
+								},
+							],
+						}
+					},
+				}
+			})
+
+			const stream = o3Handler.createMessage("system", [])
+			const chunks: any[] = []
+			for await (const chunk of stream) {
+				chunks.push(chunk)
+			}
+
+			const toolCallChunks = chunks.filter((chunk) => chunk.type === "tool_call")
+			expect(toolCallChunks).toHaveLength(1)
+			expect(toolCallChunks[0]).toEqual({
+				type: "tool_call",
+				id: "call_1",
+				name: "test_tool",
+				arguments: "{}",
+			})
+		})
+
+		it("should yield tool calls for O3 model even when finish_reason is not set (fallback behavior)", async () => {
+			const o3Handler = new OpenAiHandler(o3Options)
+
+			mockCreate.mockImplementation(async (options) => {
+				return {
+					[Symbol.asyncIterator]: async function* () {
+						yield {
+							choices: [
+								{
+									delta: {
+										tool_calls: [
+											{
+												index: 0,
+												id: "call_o3_fallback",
+												function: { name: "o3_fallback_tool", arguments: '{"o3":"test"}' },
+											},
+										],
+									},
+									finish_reason: null,
+								},
+							],
+						}
+						// Stream ends with different finish reason
+						yield {
+							choices: [
+								{
+									delta: {},
+									finish_reason: "length", // Different finish reason
+								},
+							],
+						}
+					},
+				}
+			})
+
+			const stream = o3Handler.createMessage("system", [])
+			const chunks: any[] = []
+			for await (const chunk of stream) {
+				chunks.push(chunk)
+			}
+
+			// Tool calls should still be yielded via the fallback mechanism
+			const toolCallChunks = chunks.filter((chunk) => chunk.type === "tool_call")
+			expect(toolCallChunks).toHaveLength(1)
+			expect(toolCallChunks[0]).toEqual({
+				type: "tool_call",
+				id: "call_o3_fallback",
+				name: "o3_fallback_tool",
+				arguments: '{"o3":"test"}',
+			})
+		})
+
 		it("should handle O3 model with streaming and exclude max_tokens when includeMaxTokens is false", async () => {
 			const o3Handler = new OpenAiHandler({
 				...o3Options,
@@ -696,6 +968,55 @@ describe("OpenAiHandler", () => {
 			expect(callArgs).not.toHaveProperty("stream")
 		})
 
+		it("should handle tool calls with O3 model in non-streaming mode", async () => {
+			const o3Handler = new OpenAiHandler({
+				...o3Options,
+				openAiStreamingEnabled: false,
+			})
+
+			mockCreate.mockResolvedValueOnce({
+				choices: [
+					{
+						message: {
+							role: "assistant",
+							content: null,
+							tool_calls: [
+								{
+									id: "call_1",
+									type: "function",
+									function: {
+										name: "test_tool",
+										arguments: "{}",
+									},
+								},
+							],
+						},
+						finish_reason: "tool_calls",
+					},
+				],
+				usage: {
+					prompt_tokens: 10,
+					completion_tokens: 5,
+					total_tokens: 15,
+				},
+			})
+
+			const stream = o3Handler.createMessage("system", [])
+			const chunks: any[] = []
+			for await (const chunk of stream) {
+				chunks.push(chunk)
+			}
+
+			const toolCallChunks = chunks.filter((chunk) => chunk.type === "tool_call")
+			expect(toolCallChunks).toHaveLength(1)
+			expect(toolCallChunks[0]).toEqual({
+				type: "tool_call",
+				id: "call_1",
+				name: "test_tool",
+				arguments: "{}",
+			})
+		})
+
 		it("should use default temperature of 0 when not specified for O3 models", async () => {
 			const o3Handler = new OpenAiHandler({
 				...o3Options,
@@ -774,5 +1095,145 @@ describe("OpenAiHandler", () => {
 				{ path: "/models/chat/completions" },
 			)
 		})
+	})
+})
+
+describe("getOpenAiModels", () => {
+	beforeEach(() => {
+		vi.mocked(axios.get).mockClear()
+	})
+
+	it("should return empty array when baseUrl is not provided", async () => {
+		const result = await getOpenAiModels(undefined, "test-key")
+		expect(result).toEqual([])
+		expect(axios.get).not.toHaveBeenCalled()
+	})
+
+	it("should return empty array when baseUrl is empty string", async () => {
+		const result = await getOpenAiModels("", "test-key")
+		expect(result).toEqual([])
+		expect(axios.get).not.toHaveBeenCalled()
+	})
+
+	it("should trim whitespace from baseUrl", async () => {
+		const mockResponse = {
+			data: {
+				data: [{ id: "gpt-4" }, { id: "gpt-3.5-turbo" }],
+			},
+		}
+		vi.mocked(axios.get).mockResolvedValueOnce(mockResponse)
+
+		const result = await getOpenAiModels("  https://api.openai.com/v1  ", "test-key")
+
+		expect(axios.get).toHaveBeenCalledWith("https://api.openai.com/v1/models", expect.any(Object))
+		expect(result).toEqual(["gpt-4", "gpt-3.5-turbo"])
+	})
+
+	it("should handle baseUrl with trailing spaces", async () => {
+		const mockResponse = {
+			data: {
+				data: [{ id: "model-1" }, { id: "model-2" }],
+			},
+		}
+		vi.mocked(axios.get).mockResolvedValueOnce(mockResponse)
+
+		const result = await getOpenAiModels("https://api.example.com/v1 ", "test-key")
+
+		expect(axios.get).toHaveBeenCalledWith("https://api.example.com/v1/models", expect.any(Object))
+		expect(result).toEqual(["model-1", "model-2"])
+	})
+
+	it("should handle baseUrl with leading spaces", async () => {
+		const mockResponse = {
+			data: {
+				data: [{ id: "model-1" }],
+			},
+		}
+		vi.mocked(axios.get).mockResolvedValueOnce(mockResponse)
+
+		const result = await getOpenAiModels(" https://api.example.com/v1", "test-key")
+
+		expect(axios.get).toHaveBeenCalledWith("https://api.example.com/v1/models", expect.any(Object))
+		expect(result).toEqual(["model-1"])
+	})
+
+	it("should return empty array for invalid URL after trimming", async () => {
+		const result = await getOpenAiModels("   not-a-valid-url   ", "test-key")
+		expect(result).toEqual([])
+		expect(axios.get).not.toHaveBeenCalled()
+	})
+
+	it("should include authorization header when apiKey is provided", async () => {
+		const mockResponse = {
+			data: {
+				data: [{ id: "model-1" }],
+			},
+		}
+		vi.mocked(axios.get).mockResolvedValueOnce(mockResponse)
+
+		await getOpenAiModels("https://api.example.com/v1", "test-api-key")
+
+		expect(axios.get).toHaveBeenCalledWith(
+			"https://api.example.com/v1/models",
+			expect.objectContaining({
+				headers: expect.objectContaining({
+					Authorization: "Bearer test-api-key",
+				}),
+			}),
+		)
+	})
+
+	it("should include custom headers when provided", async () => {
+		const mockResponse = {
+			data: {
+				data: [{ id: "model-1" }],
+			},
+		}
+		vi.mocked(axios.get).mockResolvedValueOnce(mockResponse)
+
+		const customHeaders = {
+			"X-Custom-Header": "custom-value",
+		}
+
+		await getOpenAiModels("https://api.example.com/v1", "test-key", customHeaders)
+
+		expect(axios.get).toHaveBeenCalledWith(
+			"https://api.example.com/v1/models",
+			expect.objectContaining({
+				headers: expect.objectContaining({
+					"X-Custom-Header": "custom-value",
+					Authorization: "Bearer test-key",
+				}),
+			}),
+		)
+	})
+
+	it("should handle API errors gracefully", async () => {
+		vi.mocked(axios.get).mockRejectedValueOnce(new Error("Network error"))
+
+		const result = await getOpenAiModels("https://api.example.com/v1", "test-key")
+
+		expect(result).toEqual([])
+	})
+
+	it("should handle malformed response data", async () => {
+		vi.mocked(axios.get).mockResolvedValueOnce({ data: null })
+
+		const result = await getOpenAiModels("https://api.example.com/v1", "test-key")
+
+		expect(result).toEqual([])
+	})
+
+	it("should deduplicate model IDs", async () => {
+		const mockResponse = {
+			data: {
+				data: [{ id: "gpt-4" }, { id: "gpt-4" }, { id: "gpt-3.5-turbo" }, { id: "gpt-4" }],
+			},
+		}
+		vi.mocked(axios.get).mockResolvedValueOnce(mockResponse)
+
+		const result = await getOpenAiModels("https://api.example.com/v1", "test-key")
+
+		expect(result).toEqual(["gpt-4", "gpt-3.5-turbo"])
 	})
 })

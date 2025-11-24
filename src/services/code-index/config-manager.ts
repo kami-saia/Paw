@@ -19,6 +19,8 @@ export class CodeIndexConfigManager {
 	private openAiCompatibleOptions?: { baseUrl: string; apiKey: string }
 	private geminiOptions?: { apiKey: string }
 	private mistralOptions?: { apiKey: string }
+	private vercelAiGatewayOptions?: { apiKey: string }
+	private openRouterOptions?: { apiKey: string }
 	private qdrantUrl?: string = "http://localhost:6333"
 	private qdrantApiKey?: string
 	private searchMinScore?: number
@@ -69,6 +71,8 @@ export class CodeIndexConfigManager {
 		const openAiCompatibleApiKey = this.contextProxy?.getSecret("codebaseIndexOpenAiCompatibleApiKey") ?? ""
 		const geminiApiKey = this.contextProxy?.getSecret("codebaseIndexGeminiApiKey") ?? ""
 		const mistralApiKey = this.contextProxy?.getSecret("codebaseIndexMistralApiKey") ?? ""
+		const vercelAiGatewayApiKey = this.contextProxy?.getSecret("codebaseIndexVercelAiGatewayApiKey") ?? ""
+		const openRouterApiKey = this.contextProxy?.getSecret("codebaseIndexOpenRouterApiKey") ?? ""
 
 		// Update instance variables with configuration
 		this.codebaseIndexEnabled = codebaseIndexEnabled ?? true
@@ -104,6 +108,10 @@ export class CodeIndexConfigManager {
 			this.embedderProvider = "gemini"
 		} else if (codebaseIndexEmbedderProvider === "mistral") {
 			this.embedderProvider = "mistral"
+		} else if (codebaseIndexEmbedderProvider === "vercel-ai-gateway") {
+			this.embedderProvider = "vercel-ai-gateway"
+		} else if (codebaseIndexEmbedderProvider === "openrouter") {
+			this.embedderProvider = "openrouter"
 		} else {
 			this.embedderProvider = "openai"
 		}
@@ -124,6 +132,8 @@ export class CodeIndexConfigManager {
 
 		this.geminiOptions = geminiApiKey ? { apiKey: geminiApiKey } : undefined
 		this.mistralOptions = mistralApiKey ? { apiKey: mistralApiKey } : undefined
+		this.vercelAiGatewayOptions = vercelAiGatewayApiKey ? { apiKey: vercelAiGatewayApiKey } : undefined
+		this.openRouterOptions = openRouterApiKey ? { apiKey: openRouterApiKey } : undefined
 	}
 
 	/**
@@ -141,6 +151,8 @@ export class CodeIndexConfigManager {
 			openAiCompatibleOptions?: { baseUrl: string; apiKey: string }
 			geminiOptions?: { apiKey: string }
 			mistralOptions?: { apiKey: string }
+			vercelAiGatewayOptions?: { apiKey: string }
+			openRouterOptions?: { apiKey: string }
 			qdrantUrl?: string
 			qdrantApiKey?: string
 			searchMinScore?: number
@@ -160,6 +172,8 @@ export class CodeIndexConfigManager {
 			openAiCompatibleApiKey: this.openAiCompatibleOptions?.apiKey ?? "",
 			geminiApiKey: this.geminiOptions?.apiKey ?? "",
 			mistralApiKey: this.mistralOptions?.apiKey ?? "",
+			vercelAiGatewayApiKey: this.vercelAiGatewayOptions?.apiKey ?? "",
+			openRouterApiKey: this.openRouterOptions?.apiKey ?? "",
 			qdrantUrl: this.qdrantUrl ?? "",
 			qdrantApiKey: this.qdrantApiKey ?? "",
 		}
@@ -184,6 +198,8 @@ export class CodeIndexConfigManager {
 				openAiCompatibleOptions: this.openAiCompatibleOptions,
 				geminiOptions: this.geminiOptions,
 				mistralOptions: this.mistralOptions,
+				vercelAiGatewayOptions: this.vercelAiGatewayOptions,
+				openRouterOptions: this.openRouterOptions,
 				qdrantUrl: this.qdrantUrl,
 				qdrantApiKey: this.qdrantApiKey,
 				searchMinScore: this.currentSearchMinScore,
@@ -221,6 +237,16 @@ export class CodeIndexConfigManager {
 			const qdrantUrl = this.qdrantUrl
 			const isConfigured = !!(apiKey && qdrantUrl)
 			return isConfigured
+		} else if (this.embedderProvider === "vercel-ai-gateway") {
+			const apiKey = this.vercelAiGatewayOptions?.apiKey
+			const qdrantUrl = this.qdrantUrl
+			const isConfigured = !!(apiKey && qdrantUrl)
+			return isConfigured
+		} else if (this.embedderProvider === "openrouter") {
+			const apiKey = this.openRouterOptions?.apiKey
+			const qdrantUrl = this.qdrantUrl
+			const isConfigured = !!(apiKey && qdrantUrl)
+			return isConfigured
 		}
 		return false // Should not happen if embedderProvider is always set correctly
 	}
@@ -255,6 +281,8 @@ export class CodeIndexConfigManager {
 		const prevModelDimension = prev?.modelDimension
 		const prevGeminiApiKey = prev?.geminiApiKey ?? ""
 		const prevMistralApiKey = prev?.mistralApiKey ?? ""
+		const prevVercelAiGatewayApiKey = prev?.vercelAiGatewayApiKey ?? ""
+		const prevOpenRouterApiKey = prev?.openRouterApiKey ?? ""
 		const prevQdrantUrl = prev?.qdrantUrl ?? ""
 		const prevQdrantApiKey = prev?.qdrantApiKey ?? ""
 
@@ -292,6 +320,8 @@ export class CodeIndexConfigManager {
 		const currentModelDimension = this.modelDimension
 		const currentGeminiApiKey = this.geminiOptions?.apiKey ?? ""
 		const currentMistralApiKey = this.mistralOptions?.apiKey ?? ""
+		const currentVercelAiGatewayApiKey = this.vercelAiGatewayOptions?.apiKey ?? ""
+		const currentOpenRouterApiKey = this.openRouterOptions?.apiKey ?? ""
 		const currentQdrantUrl = this.qdrantUrl ?? ""
 		const currentQdrantApiKey = this.qdrantApiKey ?? ""
 
@@ -315,6 +345,14 @@ export class CodeIndexConfigManager {
 		}
 
 		if (prevMistralApiKey !== currentMistralApiKey) {
+			return true
+		}
+
+		if (prevVercelAiGatewayApiKey !== currentVercelAiGatewayApiKey) {
+			return true
+		}
+
+		if (prevOpenRouterApiKey !== currentOpenRouterApiKey) {
 			return true
 		}
 
@@ -375,6 +413,8 @@ export class CodeIndexConfigManager {
 			openAiCompatibleOptions: this.openAiCompatibleOptions,
 			geminiOptions: this.geminiOptions,
 			mistralOptions: this.mistralOptions,
+			vercelAiGatewayOptions: this.vercelAiGatewayOptions,
+			openRouterOptions: this.openRouterOptions,
 			qdrantUrl: this.qdrantUrl,
 			qdrantApiKey: this.qdrantApiKey,
 			searchMinScore: this.currentSearchMinScore,

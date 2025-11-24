@@ -3,8 +3,9 @@ import axios from "axios"
 import type { ModelInfo } from "@roo-code/types"
 
 import { parseApiPrice } from "../../../shared/cost"
+import { toRequestyServiceUrl } from "../../../shared/utils/requesty"
 
-export async function getRequestyModels(apiKey?: string): Promise<Record<string, ModelInfo>> {
+export async function getRequestyModels(baseUrl?: string, apiKey?: string): Promise<Record<string, ModelInfo>> {
 	const models: Record<string, ModelInfo> = {}
 
 	try {
@@ -14,8 +15,10 @@ export async function getRequestyModels(apiKey?: string): Promise<Record<string,
 			headers["Authorization"] = `Bearer ${apiKey}`
 		}
 
-		const url = "https://router.requesty.ai/v1/models"
-		const response = await axios.get(url, { headers })
+		const resolvedBaseUrl = toRequestyServiceUrl(baseUrl)
+		const modelsUrl = new URL("v1/models", resolvedBaseUrl)
+
+		const response = await axios.get(modelsUrl.toString(), { headers })
 		const rawModels = response.data.data
 
 		for (const rawModel of rawModels) {
@@ -33,7 +36,6 @@ export async function getRequestyModels(apiKey?: string): Promise<Record<string,
 				contextWindow: rawModel.context_window,
 				supportsPromptCache: rawModel.supports_caching,
 				supportsImages: rawModel.supports_vision,
-				supportsComputerUse: rawModel.supports_computer_use,
 				supportsReasoningBudget: reasoningBudget,
 				supportsReasoningEffort: reasoningEffort,
 				inputPrice: parseApiPrice(rawModel.input_price),

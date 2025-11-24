@@ -91,7 +91,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 									: `${t("history:enterSelectionMode")}`
 							}>
 							<Button
-								variant={isSelectionMode ? "default" : "secondary"}
+								variant={isSelectionMode ? "primary" : "secondary"}
 								onClick={toggleSelectionMode}
 								data-testid="toggle-selection-mode-button">
 								<span
@@ -222,7 +222,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 				</div>
 			</TabHeader>
 
-			<TabContent className="p-0">
+			<TabContent className="px-2 py-0">
 				<Virtuoso
 					className="flex-1 overflow-y-scroll"
 					data={tasks}
@@ -243,7 +243,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 							isSelected={selectedTaskIds.includes(item.id)}
 							onToggleSelection={toggleTaskSelection}
 							onDelete={setDeleteTaskId}
-							className="m-2 mr-0"
+							className="m-2"
 						/>
 					)}
 				/>
@@ -251,7 +251,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 
 			{/* Fixed action bar at bottom - only shown in selection mode with selected items */}
 			{isSelectionMode && selectedTaskIds.length > 0 && (
-				<div className="fixed bottom-0 left-0 right-0 bg-vscode-editor-background border-t border-vscode-panel-border p-2 flex justify-between items-center">
+				<div className="fixed bottom-0 left-0 right-2 bg-vscode-editor-background border-t border-vscode-panel-border p-2 flex justify-between items-center">
 					<div className="text-vscode-foreground">
 						{t("history:selectedItems", { selected: selectedTaskIds.length, total: tasks.length })}
 					</div>
@@ -259,7 +259,7 @@ const HistoryView = ({ onDone }: HistoryViewProps) => {
 						<Button variant="secondary" onClick={() => setSelectedTaskIds([])}>
 							{t("history:clearSelection")}
 						</Button>
-						<Button variant="default" onClick={handleBatchDelete}>
+						<Button variant="primary" onClick={handleBatchDelete}>
 							{t("history:deleteSelected")}
 						</Button>
 					</div>

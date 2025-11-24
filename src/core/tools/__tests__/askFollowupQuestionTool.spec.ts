@@ -1,5 +1,4 @@
-import { describe, it, expect, vi } from "vitest"
-import { askFollowupQuestionTool } from "../askFollowupQuestionTool"
+import { askFollowupQuestionTool } from "../AskFollowupQuestionTool"
 import { ToolUse } from "../../../shared/tools"
 
 describe("askFollowupQuestionTool", () => {
@@ -32,14 +31,13 @@ describe("askFollowupQuestionTool", () => {
 			partial: false,
 		}
 
-		await askFollowupQuestionTool(
-			mockCline,
-			block,
-			vi.fn(),
-			vi.fn(),
-			mockPushToolResult,
-			vi.fn((tag, content) => content),
-		)
+		await askFollowupQuestionTool.handle(mockCline, block as ToolUse<"ask_followup_question">, {
+			askApproval: vi.fn(),
+			handleError: vi.fn(),
+			pushToolResult: mockPushToolResult,
+			removeClosingTag: vi.fn((tag, content) => content),
+			toolProtocol: "xml",
+		})
 
 		expect(mockCline.ask).toHaveBeenCalledWith(
 			"followup",
@@ -59,14 +57,13 @@ describe("askFollowupQuestionTool", () => {
 			partial: false,
 		}
 
-		await askFollowupQuestionTool(
-			mockCline,
-			block,
-			vi.fn(),
-			vi.fn(),
-			mockPushToolResult,
-			vi.fn((tag, content) => content),
-		)
+		await askFollowupQuestionTool.handle(mockCline, block as ToolUse<"ask_followup_question">, {
+			askApproval: vi.fn(),
+			handleError: vi.fn(),
+			pushToolResult: mockPushToolResult,
+			removeClosingTag: vi.fn((tag, content) => content),
+			toolProtocol: "xml",
+		})
 
 		expect(mockCline.ask).toHaveBeenCalledWith(
 			"followup",
@@ -88,14 +85,13 @@ describe("askFollowupQuestionTool", () => {
 			partial: false,
 		}
 
-		await askFollowupQuestionTool(
-			mockCline,
-			block,
-			vi.fn(),
-			vi.fn(),
-			mockPushToolResult,
-			vi.fn((tag, content) => content),
-		)
+		await askFollowupQuestionTool.handle(mockCline, block as ToolUse<"ask_followup_question">, {
+			askApproval: vi.fn(),
+			handleError: vi.fn(),
+			pushToolResult: mockPushToolResult,
+			removeClosingTag: vi.fn((tag, content) => content),
+			toolProtocol: "xml",
+		})
 
 		expect(mockCline.ask).toHaveBeenCalledWith(
 			"followup",

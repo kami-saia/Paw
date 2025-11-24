@@ -10,18 +10,26 @@
 		},
 		"openrouter": {
 			"description": "Een uniforme interface voor LLM's"
+		},
+		"roo": {
+			"description": "De beste gratis modellen om mee te beginnen",
+			"incentive": "Probeer Roo gratis uit"
 		}
 	},
-	"chooseProvider": "Om zijn magie te doen, heeft Roo een API-sleutel nodig.",
+	"chooseProvider": "Om te beginnen heb je een LLM-provider nodig:",
+	"providerSignup": {
+		"rooCloudProvider": "Roo Code Cloud Provider",
+		"rooCloudDescription": "De eenvoudigste manier om Roo te gebruiken. Een samengestelde mix van gratis en betaalde modellen tegen lage kosten",
+		"learnMore": "meer informatie",
+		"useAnotherProvider": "Gebruik een andere provider",
+		"useAnotherProviderDescription": "Voer een API-sleutel in en ga aan de slag.",
+		"getStarted": "Beginnen"
+	},
 	"startRouter": "We raden aan om een LLM-router te gebruiken:",
 	"startCustom": "Of je kunt je eigen API-sleutel gebruiken:",
 	"telemetry": {
-		"title": "Help Roo Code verbeteren",
-		"anonymousTelemetry": "Stuur anonieme fout- en gebruiksgegevens om ons te helpen bugs op te lossen en de extensie te verbeteren. Er worden nooit code, prompts of persoonlijke gegevens verzonden.",
-		"changeSettings": "Je kunt dit altijd wijzigen onderaan de <settingsLink>instellingen</settingsLink>",
-		"settings": "instellingen",
-		"allow": "Toestaan",
-		"deny": "Weigeren"
+		"helpImprove": "Help Roo Code verbeteren",
+		"helpImproveMessage": "Roo Code verzamelt fout- en gebruiksgegevens om ons te helpen bugs op te lossen en de extensie te verbeteren. Deze telemetrie verzamelt geen code, prompts of persoonlijke informatie. Je kunt dit uitschakelen in de <settingsLink>instellingen</settingsLink>."
 	},
 	"importSettings": "Instellingen importeren"
 }

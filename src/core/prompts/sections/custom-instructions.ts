@@ -6,6 +6,7 @@ import { Dirent } from "fs"
 import { isLanguage } from "@roo-code/types"
 
 import type { SystemPromptSettings } from "../types"
+import { getEffectiveProtocol, isNativeProtocol } from "@roo-code/types"
 
 import { LANGUAGES } from "../../../shared/language"
 import { getRooDirectoriesForCwd, getGlobalRooDirectory } from "../../../services/roo-config"
@@ -217,17 +218,46 @@ export async function loadRuleFiles(cwd: string): Promise<string> {
 }
 
 /**
- * Load AGENTS.md file from the project root if it exists
+ * Load AGENTS.md or AGENT.md file from the project root if it exists
+ * Checks for both AGENTS.md (standard) and AGENT.md (alternative) for compatibility
  */
 async function loadAgentRulesFile(cwd: string): Promise<string> {
-	try {
-		const agentsPath = path.join(cwd, "AGENTS.md")
-		const content = await safeReadFile(agentsPath)
-		if (content) {
-			return `# Agent Rules Standard (AGENTS.md):\n${content}`
+	// Try both filenames - AGENTS.md (standard) first, then AGENT.md (alternative)
+	const filenames = ["AGENTS.md", "AGENT.md"]
+
+	for (const filename of filenames) {
+		try {
+			const agentPath = path.join(cwd, filename)
+			let resolvedPath = agentPath
+
+			// Check if file exists and handle symlinks
+			try {
+				const stats = await fs.lstat(agentPath)
+				if (stats.isSymbolicLink()) {
+					// Create a temporary fileInfo array to use with resolveSymLink
+					const fileInfo: Array<{ originalPath: string; resolvedPath: string }> = []
+
+					// Use the existing resolveSymLink function to handle symlink resolution
+					await resolveSymLink(agentPath, fileInfo, 0)
+
+					// Extract the resolved path from fileInfo
+					if (fileInfo.length > 0) {
+						resolvedPath = fileInfo[0].resolvedPath
+					}
+				}
+			} catch (err) {
+				// If lstat fails (file doesn't exist), try next filename
+				continue
+			}
+
+			// Read the content from the resolved path
+			const content = await safeReadFile(resolvedPath)
+			if (content) {
+				return `# Agent Rules Standard (${filename}):\n${content}`
+			}
+		} catch (err) {
+			// Silently ignore errors - agent rules files are optional
 		}
-	} catch (err) {
-		// Silently ignore errors - AGENTS.md is optional
 	}
 	return ""
 }
@@ -339,15 +369,20 @@ export async function addCustomInstructions(
 
 	const joinedSections = sections.join("\n\n")
 
+	const effectiveProtocol = getEffectiveProtocol(options.settings?.toolProtocol)
+
 	return joinedSections
 		? `
 ====
 
 USER'S CUSTOM INSTRUCTIONS
 
-The following additional instructions are provided by the user, and should be followed to the best of your ability without interfering with the TOOL USE guidelines.
+The following additional instructions are provided by the user, and should be followed to the best of your ability${
+				isNativeProtocol(effectiveProtocol) ? "." : " without interfering with the TOOL USE guidelines."
+			}
 
-${joinedSections}`
+${joinedSections}
+`
 		: ""
 }
 

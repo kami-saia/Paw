@@ -108,7 +108,55 @@ describe("GroqHandler", () => {
 		const firstChunk = await stream.next()
 
 		expect(firstChunk.done).toBe(false)
-		expect(firstChunk.value).toEqual({ type: "usage", inputTokens: 10, outputTokens: 20 })
+		expect(firstChunk.value).toMatchObject({
+			type: "usage",
+			inputTokens: 10,
+			outputTokens: 20,
+		})
+		// cacheWriteTokens and cacheReadTokens will be undefined when 0
+		expect(firstChunk.value.cacheWriteTokens).toBeUndefined()
+		expect(firstChunk.value.cacheReadTokens).toBeUndefined()
+		// Check that totalCost is a number (we don't need to test the exact value as that's tested in cost.spec.ts)
+		expect(typeof firstChunk.value.totalCost).toBe("number")
+	})
+
+	it("createMessage should handle cached tokens in usage data", async () => {
+		mockCreate.mockImplementationOnce(() => {
+			return {
+				[Symbol.asyncIterator]: () => ({
+					next: vitest
+						.fn()
+						.mockResolvedValueOnce({
+							done: false,
+							value: {
+								choices: [{ delta: {} }],
+								usage: {
+									prompt_tokens: 100,
+									completion_tokens: 50,
+									prompt_tokens_details: {
+										cached_tokens: 30,
+									},
+								},
+							},
+						})
+						.mockResolvedValueOnce({ done: true }),
+				}),
+			}
+		})
+
+		const stream = handler.createMessage("system prompt", [])
+		const firstChunk = await stream.next()
+
+		expect(firstChunk.done).toBe(false)
+		expect(firstChunk.value).toMatchObject({
+			type: "usage",
+			inputTokens: 100,
+			outputTokens: 50,
+			cacheReadTokens: 30,
+		})
+		// cacheWriteTokens will be undefined when 0
+		expect(firstChunk.value.cacheWriteTokens).toBeUndefined()
+		expect(typeof firstChunk.value.totalCost).toBe("number")
 	})
 
 	it("createMessage should pass correct parameters to Groq client", async () => {
@@ -141,6 +189,7 @@ describe("GroqHandler", () => {
 				stream: true,
 				stream_options: { include_usage: true },
 			}),
+			undefined,
 		)
 	})
 })
