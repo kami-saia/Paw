@@ -80,6 +80,7 @@ describe("experiments", () => {
 				preventFocusDisruption: false,
 				imageGeneration: false,
 				runSlashCommand: false,
+				multipleNativeToolCalls: false,
 			}
 			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.SEMANTIC_MEMORY)).toBe(true)
 		})
@@ -92,6 +93,7 @@ describe("experiments", () => {
 				preventFocusDisruption: false,
 				imageGeneration: false,
 				runSlashCommand: false,
+				multipleNativeToolCalls: false,
 			}
 			expect(Experiments.isEnabled(experiments, EXPERIMENT_IDS.SEMANTIC_MEMORY)).toBe(false)
 		})

@@ -1,7 +1,8 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 import { McpHub, McpServer } from "../services/mcp/McpHub"
 import { RooCodeEventName } from "@roo-code/types"
-import type { Task, UserMessageEnrichmentPayload, AssistantResponseProcessedPayload } from "../core/task/Task" // Import Task and event payload types
+import type { AssistantResponseProcessedPayload, UserMessageEnrichmentPayload } from "@roo-code/types"
+import type { Task } from "../core/task/Task"
 
 // Define the RecalledMemoryItem interface as per the integration plan
 export interface RecalledMemoryItem {
