@@ -2793,6 +2793,10 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 					await this.saveClineMessages()
 					await this.providerRef.deref()?.postStateToWebview()
 
+					// Drain any queued user messages now that the stream completed successfully.
+					// This prevents follow-up messages (queued during streaming) from getting stuck.
+					this.processQueuedMessages()
+
 					// Reset parser after each complete conversation round (XML protocol only)
 					this.assistantMessageParser?.reset()
 
@@ -3859,16 +3863,26 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	 */
 	public processQueuedMessages(): void {
 		try {
-			if (!this.messageQueueService.isEmpty()) {
-				const queued = this.messageQueueService.dequeueMessage()
-				if (queued) {
-					setTimeout(() => {
-						this.submitUserMessage(queued.text, queued.images).catch((err) =>
-							console.error(`[Task] Failed to submit queued message:`, err),
-						)
-					}, 0)
-				}
+			if (this.messageQueueService.isEmpty()) {
+				return
 			}
+
+			// Drain one message at a time to preserve ordering, but keep draining automatically.
+			const queued = this.messageQueueService.dequeueMessage()
+			if (!queued) {
+				return
+			}
+
+			setTimeout(() => {
+				this.submitUserMessage(queued.text, queued.images)
+					.catch((err) => console.error(`[Task] Failed to submit queued message:`, err))
+					.finally(() => {
+						// Keep draining until empty. This prevents the queue from stalling after one message.
+						if (!this.messageQueueService.isEmpty()) {
+							this.processQueuedMessages()
+						}
+					})
+			}, 0)
 		} catch (e) {
 			console.error(`[Task] Queue processing error:`, e)
 		}

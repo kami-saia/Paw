@@ -3000,10 +3000,12 @@ export const webviewMessageHandler = async (
 		 */
 
 		case "queueMessage": {
+			// Queue payload from webview should be plain text (no <user_message> wrapper)
 			provider.getCurrentTask()?.messageQueueService.addMessage(message.text ?? "", message.images)
 			break
 		}
 		case "removeQueuedMessage": {
+			// Webview sends the queued message id in `text`
 			provider.getCurrentTask()?.messageQueueService.removeMessage(message.text ?? "")
 			break
 		}

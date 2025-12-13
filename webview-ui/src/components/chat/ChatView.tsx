@@ -542,25 +542,55 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 	}, [])
 
 	/**
+	 * Text normalization helpers:
+	 * - Queue should store plain user text (no wrapper) so it's readable/editable in UI.
+	 * - When sending to the extension, wrap with <user_message> unless already wrapped.
+	 */
+	const isWrappedUserMessage = useCallback((value: string) => {
+		return /<user_message>[\s\S]*<\/user_message>/.test(value)
+	}, [])
+
+	const extractWrappedUserMessage = useCallback((value: string) => {
+		const match = value.match(/<user_message>([\s\S]*?)<\/user_message>/)
+		return match?.[1] ?? value
+	}, [])
+
+	const wrapUserMessageIfNeeded = useCallback(
+		(value: string) => {
+			const trimmed = value.trim()
+			if (!trimmed) return trimmed
+			return isWrappedUserMessage(trimmed) ? trimmed : `<user_message>${trimmed}</user_message>`
+		},
+		[isWrappedUserMessage],
+	)
+
+	/**
 	 * Handles sending messages to the extension
 	 * @param text - The message text to send
 	 * @param images - Array of image data URLs to send with the message
+	 * @param options - Controls whether we may queue due to queue length (used for queue draining)
 	 */
 	const handleSendMessage = useCallback(
-		(text: string, images: string[]) => {
-			const trimmedText = text.trim()
+		(text: string, images: string[], options: { bypassQueueOrderGate?: boolean } = {}) => {
+			const trimmedText = (text ?? "").trim()
 
 			if (trimmedText || images.length > 0) {
-				const messageToSend = `<user_message>${trimmedText}</user_message>`
+				const messageToSend = wrapUserMessageIfNeeded(trimmedText)
 
 				// Queue message if:
 				// - Task is busy (sendingDisabled)
 				// - API request in progress (isStreaming)
 				// - Queue has items (preserve message order during drain)
-				if (sendingDisabled || isStreaming || messageQueue.length > 0) {
+				//
+				// When draining, we must bypass the "queue has items" gate; otherwise drained messages are re-queued
+				// indefinitely and appear "not received".
+				const shouldQueueForOrder = messageQueue.length > 0 && !options.bypassQueueOrderGate
+				if (sendingDisabled || isStreaming || shouldQueueForOrder) {
 					try {
-						console.log("queueMessage", text, images)
-						vscode.postMessage({ type: "queueMessage", text: messageToSend, images })
+						// Queue should store plain text (no wrapper), even if upstream accidentally includes wrappers.
+						const queueText = extractWrappedUserMessage(messageToSend)
+						console.log("queueMessage", queueText, images)
+						vscode.postMessage({ type: "queueMessage", text: queueText, images })
 						setInputValue("")
 						setSelectedImages([])
 					} catch (error) {
@@ -606,13 +636,26 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					}
 				} else {
 					// This is a new message in an ongoing task.
-					vscode.postMessage({ type: "askResponse", askResponse: "messageResponse", text, images })
+					vscode.postMessage({
+						type: "askResponse",
+						askResponse: "messageResponse",
+						text: messageToSend,
+						images,
+					})
 				}
 
 				handleChatReset()
 			}
 		},
-		[handleChatReset, markFollowUpAsAnswered, sendingDisabled, isStreaming, messageQueue.length], // messagesRef and clineAskRef are stable
+		[
+			extractWrappedUserMessage,
+			handleChatReset,
+			markFollowUpAsAnswered,
+			messageQueue.length,
+			sendingDisabled,
+			isStreaming,
+			wrapUserMessageIfNeeded,
+		], // messagesRef and clineAskRef are stable
 	)
 
 	const handleSetChatBoxMessage = useCallback(
@@ -770,7 +813,9 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 							handleChatReset()
 							break
 						case "sendMessage":
-							handleSendMessage(message.text ?? "", message.images ?? [])
+							// Used by the extension to drain queued messages. We must bypass the queue-length gate
+							// to prevent re-queue loops that look like messages are "not received".
+							handleSendMessage(message.text ?? "", message.images ?? [], { bypassQueueOrderGate: true })
 							break
 						case "setChatBoxMessage":
 							handleSetChatBoxMessage(message.text ?? "", message.images ?? [])

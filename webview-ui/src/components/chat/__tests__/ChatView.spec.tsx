@@ -977,7 +977,7 @@ describe("ChatView - Message Queueing Tests", () => {
 			expect(vscode.postMessage).toHaveBeenCalledWith({
 				type: "askResponse",
 				askResponse: "messageResponse",
-				text: "follow-up after completion",
+				text: "<user_message>follow-up after completion</user_message>",
 				images: [],
 			})
 		})
@@ -1048,5 +1048,103 @@ describe("ChatView - Message Queueing Tests", () => {
 				askResponse: "messageResponse",
 			}),
 		)
+	})
+
+	it("does not re-queue drained messages when extension invokes sendMessage (bypass order gate)", async () => {
+		const { getByTestId } = renderChatView()
+
+		// Hydrate state with an existing queue, but NOT streaming (drain scenario).
+		mockPostMessage({
+			clineMessages: [
+				{
+					type: "say",
+					say: "task",
+					ts: Date.now() - 2000,
+					text: "Initial task",
+				},
+			],
+			messageQueue: [
+				{ id: "msg1", text: "queued message 1", images: [] },
+				{ id: "msg2", text: "queued message 2", images: [] },
+			],
+		})
+
+		await waitFor(() => {
+			expect(getByTestId("chat-textarea")).toBeInTheDocument()
+		})
+
+		vi.mocked(vscode.postMessage).mockClear()
+
+		// Simulate extension draining the queue by invoking sendMessage.
+		await act(async () => {
+			window.postMessage(
+				{
+					type: "invoke",
+					invoke: "sendMessage",
+					text: "drained message",
+					images: [],
+				},
+				"*",
+			)
+		})
+
+		// Should be sent directly (askResponse) rather than being re-queued due to queue length.
+		await waitFor(() => {
+			expect(vscode.postMessage).toHaveBeenCalledWith({
+				type: "askResponse",
+				askResponse: "messageResponse",
+				text: "<user_message>drained message</user_message>",
+				images: [],
+			})
+		})
+
+		expect(vscode.postMessage).not.toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "queueMessage",
+			}),
+		)
+	})
+
+	it("queues plain text (no <user_message> wrapper) even if user input contains wrappers", async () => {
+		const { getByTestId } = renderChatView()
+
+		mockPostMessage({
+			clineMessages: [
+				{
+					type: "say",
+					say: "task",
+					ts: Date.now() - 2000,
+					text: "Initial task",
+				},
+				{
+					type: "say",
+					say: "api_req_started",
+					ts: Date.now(),
+					text: JSON.stringify({ apiProtocol: "anthropic" }), // No cost = still streaming
+				},
+			],
+		})
+
+		await waitFor(() => {
+			expect(getByTestId("chat-textarea")).toBeInTheDocument()
+		})
+
+		vi.mocked(vscode.postMessage).mockClear()
+
+		const chatTextArea = getByTestId("chat-textarea")
+		const input = chatTextArea.querySelector("input")! as HTMLInputElement
+
+		await act(async () => {
+			fireEvent.change(input, { target: { value: "<user_message>wrapped</user_message>" } })
+			fireEvent.keyDown(input, { key: "Enter", code: "Enter" })
+		})
+
+		await waitFor(() => {
+			expect(vscode.postMessage).toHaveBeenCalledWith({
+				type: "queueMessage",
+				text: "wrapped",
+				images: [],
+			})
+		})
 	})
 })
