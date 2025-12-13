@@ -26,6 +26,9 @@ export enum RooCodeEventName {
 	TaskPaused = "taskPaused",
 	TaskUnpaused = "taskUnpaused",
 	TaskSpawned = "taskSpawned",
+	TaskDelegated = "taskDelegated",
+	TaskDelegationCompleted = "taskDelegationCompleted",
+	TaskDelegationResumed = "taskDelegationResumed",
 
 	// Task Execution
 	Message = "message",
@@ -77,6 +80,19 @@ export const rooCodeEventsSchema = z.object({
 	[RooCodeEventName.TaskPaused]: z.tuple([z.string()]),
 	[RooCodeEventName.TaskUnpaused]: z.tuple([z.string()]),
 	[RooCodeEventName.TaskSpawned]: z.tuple([z.string(), z.string()]),
+	[RooCodeEventName.TaskDelegated]: z.tuple([
+		z.string(), // parentTaskId
+		z.string(), // childTaskId
+	]),
+	[RooCodeEventName.TaskDelegationCompleted]: z.tuple([
+		z.string(), // parentTaskId
+		z.string(), // childTaskId
+		z.string(), // completionResultSummary
+	]),
+	[RooCodeEventName.TaskDelegationResumed]: z.tuple([
+		z.string(), // parentTaskId
+		z.string(), // childTaskId
+	]),
 
 	[RooCodeEventName.Message]: z.tuple([
 		z.object({
@@ -90,7 +106,7 @@ export const rooCodeEventsSchema = z.object({
 	[RooCodeEventName.TaskUserMessage]: z.tuple([z.string()]),
 
 	[RooCodeEventName.TaskToolFailed]: z.tuple([z.string(), toolNamesSchema, z.string()]),
-	[RooCodeEventName.TaskTokenUsageUpdated]: z.tuple([z.string(), tokenUsageSchema]),
+	[RooCodeEventName.TaskTokenUsageUpdated]: z.tuple([z.string(), tokenUsageSchema, toolUsageSchema]),
 
 	[RooCodeEventName.TaskBeforeUserMessageEnrichment]: z.tuple([z.any()]),
 	[RooCodeEventName.TaskAfterAssistantResponseProcessed]: z.tuple([z.any()]),
@@ -174,6 +190,21 @@ export const taskEventSchema = z.discriminatedUnion("eventName", [
 	z.object({
 		eventName: z.literal(RooCodeEventName.TaskSpawned),
 		payload: rooCodeEventsSchema.shape[RooCodeEventName.TaskSpawned],
+		taskId: z.number().optional(),
+	}),
+	z.object({
+		eventName: z.literal(RooCodeEventName.TaskDelegated),
+		payload: rooCodeEventsSchema.shape[RooCodeEventName.TaskDelegated],
+		taskId: z.number().optional(),
+	}),
+	z.object({
+		eventName: z.literal(RooCodeEventName.TaskDelegationCompleted),
+		payload: rooCodeEventsSchema.shape[RooCodeEventName.TaskDelegationCompleted],
+		taskId: z.number().optional(),
+	}),
+	z.object({
+		eventName: z.literal(RooCodeEventName.TaskDelegationResumed),
+		payload: rooCodeEventsSchema.shape[RooCodeEventName.TaskDelegationResumed],
 		taskId: z.number().optional(),
 	}),
 

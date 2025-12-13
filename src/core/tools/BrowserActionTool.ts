@@ -23,6 +23,7 @@ export async function browserActionTool(
 	const coordinate: string | undefined = block.params.coordinate
 	const text: string | undefined = block.params.text
 	const size: string | undefined = block.params.size
+	const filePath: string | undefined = block.params.path
 
 	if (!action || !browserActions.includes(action)) {
 		// checking for action to ensure it is complete and valid
@@ -30,6 +31,7 @@ export async function browserActionTool(
 			// if the block is complete and we don't have a valid action cline is a mistake
 			cline.consecutiveMistakeCount++
 			cline.recordToolError("browser_action")
+			cline.didToolFailInCurrentTurn = true
 			pushToolResult(await cline.sayAndCreateMissingParamError("browser_action", "action"))
 			// Do not close the browser on parameter validation errors
 		}
@@ -63,6 +65,7 @@ export async function browserActionTool(
 				if (!url) {
 					cline.consecutiveMistakeCount++
 					cline.recordToolError("browser_action")
+					cline.didToolFailInCurrentTurn = true
 					pushToolResult(await cline.sayAndCreateMissingParamError("browser_action", "url"))
 					// Do not close the browser on parameter validation errors
 					return
@@ -102,6 +105,7 @@ export async function browserActionTool(
 					if (!coordinate) {
 						cline.consecutiveMistakeCount++
 						cline.recordToolError("browser_action")
+						cline.didToolFailInCurrentTurn = true
 						pushToolResult(await cline.sayAndCreateMissingParamError("browser_action", "coordinate"))
 						// Do not close the browser on parameter validation errors
 						return // can't be within an inner switch
@@ -118,6 +122,7 @@ export async function browserActionTool(
 					} catch (error) {
 						cline.consecutiveMistakeCount++
 						cline.recordToolError("browser_action")
+						cline.didToolFailInCurrentTurn = true
 						pushToolResult(
 							await cline.sayAndCreateMissingParamError(
 								"browser_action",
@@ -133,6 +138,7 @@ export async function browserActionTool(
 					if (!text) {
 						cline.consecutiveMistakeCount++
 						cline.recordToolError("browser_action")
+						cline.didToolFailInCurrentTurn = true
 						pushToolResult(await cline.sayAndCreateMissingParamError("browser_action", "text"))
 						// Do not close the browser on parameter validation errors
 						return
@@ -143,7 +149,19 @@ export async function browserActionTool(
 					if (!size) {
 						cline.consecutiveMistakeCount++
 						cline.recordToolError("browser_action")
+						cline.didToolFailInCurrentTurn = true
 						pushToolResult(await cline.sayAndCreateMissingParamError("browser_action", "size"))
+						// Do not close the browser on parameter validation errors
+						return
+					}
+				}
+
+				if (action === "screenshot") {
+					if (!filePath) {
+						cline.consecutiveMistakeCount++
+						cline.recordToolError("browser_action")
+						cline.didToolFailInCurrentTurn = true
+						pushToolResult(await cline.sayAndCreateMissingParamError("browser_action", "path"))
 						// Do not close the browser on parameter validation errors
 						return
 					}
@@ -185,6 +203,9 @@ export async function browserActionTool(
 					case "resize":
 						browserActionResult = await cline.browserSession.resize(size!)
 						break
+					case "screenshot":
+						browserActionResult = await cline.browserSession.saveScreenshot(filePath!, cline.cwd)
+						break
 					case "close":
 						browserActionResult = await cline.browserSession.closeBrowser()
 						break
@@ -199,12 +220,16 @@ export async function browserActionTool(
 				case "press":
 				case "scroll_down":
 				case "scroll_up":
-				case "resize": {
+				case "resize":
+				case "screenshot": {
 					await cline.say("browser_action_result", JSON.stringify(browserActionResult))
 
 					const images = browserActionResult?.screenshot ? [browserActionResult.screenshot] : []
 
-					let messageText = `The browser action has been executed.`
+					let messageText =
+						action === "screenshot"
+							? `Screenshot saved to: ${filePath}`
+							: `The browser action has been executed.`
 
 					messageText += `\n\n**CRITICAL**: When providing click/hover coordinates:`
 					messageText += `\n1. Screenshot dimensions != Browser viewport dimensions`

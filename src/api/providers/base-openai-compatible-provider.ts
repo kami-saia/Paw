@@ -13,6 +13,7 @@ import { DEFAULT_HEADERS } from "./constants"
 import { BaseProvider } from "./base-provider"
 import { handleOpenAIError } from "./utils/openai-error-handler"
 import { calculateApiCostOpenAI } from "../../shared/cost"
+import { getApiRequestTimeout } from "./utils/timeout-config"
 
 type BaseOpenAiCompatibleProviderOptions<ModelName extends string> = ApiHandlerOptions & {
 	providerName: string
@@ -62,6 +63,7 @@ export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 			baseURL,
 			apiKey: this.options.apiKey,
 			defaultHeaders: DEFAULT_HEADERS,
+			timeout: getApiRequestTimeout(),
 		})
 	}
 
@@ -93,6 +95,9 @@ export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 			stream_options: { include_usage: true },
 			...(metadata?.tools && { tools: this.convertToolsForOpenAI(metadata.tools) }),
 			...(metadata?.tool_choice && { tool_choice: metadata.tool_choice }),
+			...(metadata?.toolProtocol === "native" && {
+				parallel_tool_calls: metadata.parallelToolCalls ?? false,
+			}),
 		}
 
 		// Add thinking parameter if reasoning is enabled and model supports it
@@ -123,8 +128,6 @@ export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 				}) as const,
 		)
 
-		const toolCallAccumulator = new Map<number, { id: string; name: string; arguments: string }>()
-
 		let lastUsage: OpenAI.CompletionUsage | undefined
 
 		for await (const chunk of stream) {
@@ -137,7 +140,6 @@ export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 			}
 
 			const delta = chunk.choices?.[0]?.delta
-			const finishReason = chunk.choices?.[0]?.finish_reason
 
 			if (delta?.content) {
 				for (const processedChunk of matcher.update(delta.content)) {
@@ -157,54 +159,22 @@ export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 				}
 			}
 
+			// Emit raw tool call chunks - NativeToolCallParser handles state management
 			if (delta?.tool_calls) {
 				for (const toolCall of delta.tool_calls) {
-					const index = toolCall.index
-					const existing = toolCallAccumulator.get(index)
-
-					if (existing) {
-						if (toolCall.function?.arguments) {
-							existing.arguments += toolCall.function.arguments
-						}
-					} else {
-						toolCallAccumulator.set(index, {
-							id: toolCall.id || "",
-							name: toolCall.function?.name || "",
-							arguments: toolCall.function?.arguments || "",
-						})
-					}
-				}
-			}
-
-			if (finishReason === "tool_calls") {
-				for (const toolCall of toolCallAccumulator.values()) {
 					yield {
-						type: "tool_call",
+						type: "tool_call_partial",
+						index: toolCall.index,
 						id: toolCall.id,
-						name: toolCall.name,
-						arguments: toolCall.arguments,
+						name: toolCall.function?.name,
+						arguments: toolCall.function?.arguments,
 					}
 				}
-				toolCallAccumulator.clear()
 			}
 
 			if (chunk.usage) {
 				lastUsage = chunk.usage
 			}
-		}
-
-		// Fallback: If stream ends with accumulated tool calls that weren't yielded
-		// (e.g., finish_reason was 'stop' or 'length' instead of 'tool_calls')
-		if (toolCallAccumulator.size > 0) {
-			for (const toolCall of toolCallAccumulator.values()) {
-				yield {
-					type: "tool_call",
-					id: toolCall.id,
-					name: toolCall.name,
-					arguments: toolCall.arguments,
-				}
-			}
-			toolCallAccumulator.clear()
 		}
 
 		if (lastUsage) {

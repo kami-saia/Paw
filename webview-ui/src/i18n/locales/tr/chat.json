@@ -26,7 +26,9 @@
 		"shareSuccessOrganization": "Organizasyon bağlantısı panoya kopyalandı",
 		"shareSuccessPublic": "Genel bağlantı panoya kopyalandı",
 		"openInCloud": "Görevi Roo Code Cloud'da aç",
-		"openInCloudIntro": "Roo'yu her yerden izlemeye veya etkileşime devam et. Açmak için tara, tıkla veya kopyala."
+		"openInCloudIntro": "Roo'yu her yerden izlemeye veya etkileşime devam et. Açmak için tara, tıkla veya kopyala.",
+		"openApiHistory": "API Geçmişini Aç",
+		"openUiHistory": "UI Geçmişini Aç"
 	},
 	"unpin": "Sabitlemeyi iptal et",
 	"pin": "Sabitle",
@@ -103,6 +105,7 @@
 	"enhancePrompt": "Ek bağlamla istemi geliştir",
 	"addImages": "Mesaja resim ekle",
 	"sendMessage": "Mesaj gönder",
+	"pressToSend": "Göndermek için {{keyCombination}} tuşuna bas",
 	"stopTts": "Metin okumayı durdur",
 	"typeMessage": "Bir mesaj yazın...",
 	"typeTask": "Görevinizi buraya yazın...",
@@ -134,7 +137,19 @@
 		"failed": "API İsteği Başarısız",
 		"streaming": "API İsteği...",
 		"cancelled": "API İsteği İptal Edildi",
-		"streamingFailed": "API Akışı Başarısız"
+		"streamingFailed": "API Akışı Başarısız",
+		"errorTitle": "API Hatası {{code}}",
+		"errorMessage": {
+			"docs": "Belgeler",
+			"400": "Sağlayıcı isteği bu şekilde işleyemedi. Görevi durdur ve farklı bir yaklaşım dene.",
+			"401": "Sağlayıcı ile kimlik doğrulaması yapılamadı. Lütfen API anahtarı yapılandırmanızı kontrol edin.",
+			"402": "Hesabınızda para/kredi bitti gibi görünüyor. Sağlayıcıya git ve devam etmek için daha fazla ekle.",
+			"403": "Yetkisiz. API anahtarınız geçerli ama sağlayıcı bu isteği tamamlamayı reddetti.",
+			"429": "Çok fazla istek. Sağlayıcı tarafından oran sınırlaması uygulanıyor. Lütfen sonraki API çağrısından önce biraz bekle.",
+			"500": "Sağlayıcı sunucu hatası. Sağlayıcı tarafında bir sorun var, isteğinizde sorun yok.",
+			"unknown": "Bilinmeyen API hatası. Lütfen Roo Code desteğiyle iletişime geç.",
+			"connection": "Bağlantı hatası. Çalışan bir internet bağlantınız olduğundan emin olun."
+		}
 	},
 	"checkpoint": {
 		"regular": "Kontrol Noktası",
@@ -184,8 +199,6 @@
 		"didViewTopLevel": "Roo bu dizindeki üst düzey dosyaları görüntüledi",
 		"wantsToViewRecursive": "Roo bu dizindeki tüm dosyaları özyinelemeli olarak görüntülemek istiyor",
 		"didViewRecursive": "Roo bu dizindeki tüm dosyaları özyinelemeli olarak görüntüledi",
-		"wantsToViewDefinitions": "Roo bu dizinde kullanılan kaynak kod tanımlama isimlerini görüntülemek istiyor",
-		"didViewDefinitions": "Roo bu dizinde kullanılan kaynak kod tanımlama isimlerini görüntüledi",
 		"wantsToSearch": "Roo bu dizinde <code>{{regex}}</code> için arama yapmak istiyor",
 		"didSearch": "Roo bu dizinde <code>{{regex}}</code> için arama yaptı",
 		"wantsToSearchOutsideWorkspace": "Roo bu dizinde (çalışma alanı dışında) <code>{{regex}}</code> için arama yapmak istiyor",
@@ -193,9 +206,7 @@
 		"wantsToViewTopLevelOutsideWorkspace": "Roo bu dizindeki (çalışma alanı dışında) üst düzey dosyaları görüntülemek istiyor",
 		"didViewTopLevelOutsideWorkspace": "Roo bu dizindeki (çalışma alanı dışında) üst düzey dosyaları görüntüledi",
 		"wantsToViewRecursiveOutsideWorkspace": "Roo bu dizindeki (çalışma alanı dışında) tüm dosyaları özyinelemeli olarak görüntülemek istiyor",
-		"didViewRecursiveOutsideWorkspace": "Roo bu dizindeki (çalışma alanı dışında) tüm dosyaları özyinelemeli olarak görüntüledi",
-		"wantsToViewDefinitionsOutsideWorkspace": "Roo bu dizinde (çalışma alanı dışında) kullanılan kaynak kod tanımlama isimlerini görüntülemek istiyor",
-		"didViewDefinitionsOutsideWorkspace": "Roo bu dizinde (çalışma alanı dışında) kullanılan kaynak kod tanımlama isimlerini görüntüledi"
+		"didViewRecursiveOutsideWorkspace": "Roo bu dizindeki (çalışma alanı dışında) tüm dosyaları özyinelemeli olarak görüntüledi"
 	},
 	"commandOutput": "Komut Çıktısı",
 	"commandExecution": {
@@ -246,6 +257,11 @@
 		"hasQuestion": "Roo'nun bir sorusu var"
 	},
 	"taskCompleted": "Görev Tamamlandı",
+	"errorDetails": {
+		"title": "Hata Detayları",
+		"copyToClipboard": "Panoya Kopyala",
+		"copied": "Kopyalandı!"
+	},
 	"powershell": {
 		"issues": "Windows PowerShell ile ilgili sorunlar yaşıyor gibi görünüyorsunuz, lütfen şu konuya bakın"
 	},
@@ -271,19 +287,28 @@
 		"thinking": "Düşünüyor",
 		"seconds": "{{count}}sn"
 	},
-	"contextCondense": {
-		"title": "Bağlam Özetlendi",
-		"condensing": "Bağlam yoğunlaştırılıyor...",
-		"errorHeader": "Bağlam yoğunlaştırılamadı",
-		"tokens": "token"
+	"contextManagement": {
+		"tokens": "token",
+		"condensation": {
+			"title": "Bağlam Özetlendi",
+			"inProgress": "Bağlam yoğunlaştırılıyor...",
+			"errorHeader": "Bağlam yoğunlaştırılamadı"
+		},
+		"truncation": {
+			"title": "Bağlam Kısaltıldı",
+			"inProgress": "Bağlam kısaltılıyor...",
+			"messagesRemoved": "{{count}} mesaj kaldırıldı",
+			"messagesRemoved_other": "{{count}} mesaj kaldırıldı",
+			"description": "Bağlam penceresi sınırında kalmak için eski mesajlar konuşmadan kaldırıldı. Bu, yoğunlaştırmaya kıyasla hızlı ancak daha az bağlam koruyucu bir yaklaşımdır."
+		}
 	},
 	"followUpSuggest": {
 		"copyToInput": "Giriş alanına kopyala (veya Shift + tıklama)",
-		"autoSelectCountdown": "{{count}}s içinde otomatik seçilecek",
-		"countdownDisplay": "{{count}}sn"
+		"timerPrefix": "Otomatik onay etkinleştirildi. {{seconds}}s içinde seçim yapılıyor…"
 	},
 	"announcement": {
-		"title": "🎉 Roo Code {{version}} Yayınlandı",
+		"title": "Roo Code {{version}} Yayınlandı",
+		"support": "<githubLink>GitHub</githubLink>'da yıldız vererek Roo Code'u destekle.",
 		"stealthModel": {
 			"feature": "<bold>Sınırlı süre ÜCRETSİZ gizli model</bold> - Code Supernova: Artık <bold>1M token bağlam penceresi</bold> ile yükseltildi! Görüntü girişlerini destekleyen çok amaçlı acentik kodlama modeli, Roo Code Cloud üzerinden kullanılabilir.",
 			"note": "(Not: istemler ve tamamlamalar model yaratıcısı tarafından kaydedilir ve modeli geliştirmek için kullanılır)",
@@ -293,8 +318,8 @@
 		},
 		"release": {
 			"heading": "Bu sürümdeki yenilikler:",
-			"browserUse": "Browser Use 2.0, kalıcı oturumlar, daha net geri bildirim, özel tarayıcı paneli ve daha doğal eylem açıklamalarıyla sohbet içi tarayıcı deneyimini yükseltir",
-			"cloudPaid": "Roo Code Cloud sağlayıcısı artık ücretli modeller sunuyor: kredi satın alın ve bunları hem bulut ajanları hem de çıkarım için kullanın"
+			"contextRewind": "İyileştirilmiş bağlam sıkıştırması, artık bir kontrol noktasına geri sarma sırasında tam önceki bağlamı geri yüklemenizi sağlıyor",
+			"rooProvider": "Roo Code Cloud sağlayıcısı artık akıl yürütme içeriğini korur ve daha iyi performans için varsayılan olarak yerel araçları kullanır"
 		},
 		"cloudAgents": {
 			"heading": "Cloud'daki yenilikler:",
@@ -302,8 +327,7 @@
 			"description": "Ajanlar bulutta birlikte çalışır ve web'den veya Slack üzerinden tetiklenebilir.",
 			"tryButton": "Bulut Ajanlarını Dene"
 		},
-		"careers": "Ayrıca, <careersLink>işe alım yapıyoruz!</careersLink>",
-		"socialLinks": "Bize <xLink>X</xLink>, <discordLink>Discord</discordLink>, veya <redditLink>r/RooCode</redditLink>'da katılın 🚀"
+		"careers": "Ayrıca, <careersLink>işe alım yapıyoruz!</careersLink>"
 	},
 	"browser": {
 		"session": "Tarayıcı Oturumu",
@@ -320,13 +344,25 @@
 		"sessionStarted": "Tarayıcı Oturumu Başlatıldı",
 		"actions": {
 			"title": "Tarayıcı Eylemi: ",
+			"launched": "Tarayıcı başlatıldı",
 			"launch": "{{url}} adresinde tarayıcı başlat",
+			"clicked": "Tıklandı ({{coordinate}})",
 			"click": "Tıkla ({{coordinate}})",
+			"typed": "Yazıldı: {{text}}",
 			"type": "Yaz \"{{text}}\"",
+			"pressed": "Basıldı: {{key}}",
 			"press": "{{key}} tuşuna bas",
+			"scrolledDown": "Aşağı kaydırıldı",
 			"scrollDown": "Aşağı kaydır",
+			"scrolledUp": "Yukarı kaydırıldı",
 			"scrollUp": "Yukarı kaydır",
+			"hovered": "Üzerine gelinildi ({{coordinate}})",
 			"hover": "Üzerine gel ({{coordinate}})",
+			"resized": "Boyut değiştirildi: {{size}}",
+			"resize": "Boyutu değiştir {{size}}",
+			"screenshotSaved": "Ekran görüntüsü kaydedildi",
+			"screenshot": "Ekran görüntüsünü {{path}} yoluna kaydet",
+			"closed": "Tarayıcı kapatıldı",
 			"close": "Tarayıcıyı kapat"
 		}
 	},

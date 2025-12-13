@@ -1,11 +1,12 @@
 import path from "path"
 import { isBinaryFile } from "isbinaryfile"
 import type { FileEntry, LineRange } from "@roo-code/types"
-import { isNativeProtocol } from "@roo-code/types"
+import { isNativeProtocol, ANTHROPIC_DEFAULT_MAX_TOKENS } from "@roo-code/types"
 
 import { Task } from "../task/Task"
 import { ClineSayTool } from "../../shared/ExtensionMessage"
 import { formatResponse } from "../prompts/responses"
+import { getModelMaxOutputTokens } from "../../shared/api"
 import { t } from "../../i18n"
 import { RecordSource } from "../context-tracking/FileContextTrackerTypes"
 import { isPathOutsideWorkspace } from "../../utils/pathUtils"
@@ -480,11 +481,22 @@ export class ReadFileTool extends BaseTool<"read_file"> {
 						continue
 					}
 
-					const modelInfo = task.api.getModel().info
+					const { id: modelId, info: modelInfo } = task.api.getModel()
 					const { contextTokens } = task.getTokenUsage()
 					const contextWindow = modelInfo.contextWindow
 
-					const budgetResult = await validateFileTokenBudget(fullPath, contextWindow, contextTokens || 0)
+					const maxOutputTokens =
+						getModelMaxOutputTokens({
+							modelId,
+							model: modelInfo,
+							settings: task.apiConfiguration,
+						}) ?? ANTHROPIC_DEFAULT_MAX_TOKENS
+
+					const budgetResult = await validateFileTokenBudget(
+						fullPath,
+						contextWindow - maxOutputTokens,
+						contextTokens || 0,
+					)
 
 					let content = await extractTextFromFile(fullPath)
 					let xmlInfo = ""
@@ -541,6 +553,12 @@ export class ReadFileTool extends BaseTool<"read_file"> {
 					})
 					await task.say("error", `Error reading file ${relPath}: ${errorMsg}`)
 				}
+			}
+
+			// Check if any files had errors or were blocked and mark the turn as failed
+			const hasErrors = fileResults.some((result) => result.status === "error" || result.status === "blocked")
+			if (hasErrors) {
+				task.didToolFailInCurrentTurn = true
 			}
 
 			// Build final result based on protocol
@@ -622,6 +640,9 @@ export class ReadFileTool extends BaseTool<"read_file"> {
 			}
 
 			await task.say("error", `Error reading file ${relPath}: ${errorMsg}`)
+
+			// Mark that a tool failed in this turn
+			task.didToolFailInCurrentTurn = true
 
 			// Build final error result based on protocol
 			let errorResult: string
@@ -717,6 +738,13 @@ export class ReadFileTool extends BaseTool<"read_file"> {
 		}
 		if (!filePath && legacyPath) {
 			filePath = legacyPath
+		}
+
+		if (!filePath && block.nativeArgs && "files" in block.nativeArgs && Array.isArray(block.nativeArgs.files)) {
+			const files = block.nativeArgs.files
+			if (files.length > 0 && files[0]?.path) {
+				filePath = files[0].path
+			}
 		}
 
 		const fullPath = filePath ? path.resolve(task.cwd, filePath) : ""

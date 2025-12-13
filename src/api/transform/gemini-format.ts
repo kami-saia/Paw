@@ -6,8 +6,18 @@ type ThoughtSignatureContentBlock = {
 	thoughtSignature?: string
 }
 
-type ExtendedContentBlockParam = Anthropic.ContentBlockParam | ThoughtSignatureContentBlock
+type ReasoningContentBlock = {
+	type: "reasoning"
+	text: string
+}
+
+type ExtendedContentBlockParam = Anthropic.ContentBlockParam | ThoughtSignatureContentBlock | ReasoningContentBlock
 type ExtendedAnthropicContent = string | ExtendedContentBlockParam[]
+
+// Extension type to safely add thoughtSignature to Part
+type PartWithThoughtSignature = Part & {
+	thoughtSignature?: string
+}
 
 function isThoughtSignatureContentBlock(block: ExtendedContentBlockParam): block is ThoughtSignatureContentBlock {
 	return block.type === "thoughtSignature"
@@ -42,16 +52,11 @@ export function convertAnthropicContentToGemini(
 		return [{ text: content }]
 	}
 
-	return content.flatMap((block): Part | Part[] => {
+	const parts = content.flatMap((block): Part | Part[] => {
 		// Handle thoughtSignature blocks first
 		if (isThoughtSignatureContentBlock(block)) {
-			if (includeThoughtSignatures && typeof block.thoughtSignature === "string") {
-				// The Google GenAI SDK currently exposes thoughtSignature as an
-				// extension field on Part; model it structurally without widening
-				// the upstream type.
-				return { thoughtSignature: block.thoughtSignature } as Part
-			}
-			// Explicitly omit thoughtSignature when not including it.
+			// We process thought signatures globally and attach them to the relevant parts
+			// or create a placeholder part if no other content exists.
 			return []
 		}
 
@@ -124,10 +129,31 @@ export function convertAnthropicContentToGemini(
 				]
 			}
 			default:
-				// Currently unsupported: "thinking" | "redacted_thinking" | "document"
-				throw new Error(`Unsupported content block type: ${block.type}`)
+				// Skip unsupported content block types (e.g., "reasoning", "thinking", "redacted_thinking", "document")
+				// These are typically metadata from other providers that don't need to be sent to Gemini
+				console.warn(`Skipping unsupported content block type: ${block.type}`)
+				return []
 		}
 	})
+
+	// Post-processing: Ensure thought signature is attached if required
+	if (includeThoughtSignatures && activeThoughtSignature) {
+		const hasSignature = parts.some((p) => "thoughtSignature" in p)
+
+		if (!hasSignature) {
+			if (parts.length > 0) {
+				// Attach to the first part (usually text)
+				// We use the intersection type to allow adding the property safely
+				;(parts[0] as PartWithThoughtSignature).thoughtSignature = activeThoughtSignature
+			} else {
+				// Create a placeholder part if no other content exists
+				const placeholder: PartWithThoughtSignature = { text: "", thoughtSignature: activeThoughtSignature }
+				parts.push(placeholder)
+			}
+		}
+	}
+
+	return parts
 }
 
 export function convertAnthropicMessageToGemini(

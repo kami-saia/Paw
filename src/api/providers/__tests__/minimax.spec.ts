@@ -16,12 +16,10 @@ import { MiniMaxHandler } from "../minimax"
 
 vitest.mock("@anthropic-ai/sdk", () => {
 	const mockCreate = vitest.fn()
-	const mockCountTokens = vitest.fn()
 	return {
 		Anthropic: vitest.fn(() => ({
 			messages: {
 				create: mockCreate,
-				countTokens: mockCountTokens,
 			},
 		})),
 	}
@@ -30,13 +28,11 @@ vitest.mock("@anthropic-ai/sdk", () => {
 describe("MiniMaxHandler", () => {
 	let handler: MiniMaxHandler
 	let mockCreate: any
-	let mockCountTokens: any
 
 	beforeEach(() => {
 		vitest.clearAllMocks()
 		const anthropicInstance = (Anthropic as unknown as any)()
 		mockCreate = anthropicInstance.messages.create
-		mockCountTokens = anthropicInstance.messages.countTokens
 	})
 
 	describe("International MiniMax (default)", () => {
@@ -372,11 +368,13 @@ describe("MiniMaxHandler", () => {
 			const firstChunk = await stream.next()
 
 			expect(firstChunk.done).toBe(false)
+			// Provider now yields tool_call_partial chunks, NativeToolCallParser handles reassembly
 			expect(firstChunk.value).toEqual({
-				type: "tool_call",
+				type: "tool_call_partial",
+				index: 0,
 				id: "tool-123",
 				name: "get_weather",
-				arguments: JSON.stringify({ city: "London" }),
+				arguments: undefined,
 			})
 		})
 	})
