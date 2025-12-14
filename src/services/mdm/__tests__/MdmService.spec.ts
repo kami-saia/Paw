@@ -34,10 +34,10 @@ vi.mock("vscode", () => ({
 
 vi.mock("../../../shared/package", () => ({
 	Package: {
-		publisher: "roo-code",
-		name: "roo-cline",
+		publisher: "saia",
+		name: "pawr",
 		version: "1.0.0",
-		outputChannel: "Roo-Code",
+		outputChannel: "Pawr",
 		sha: undefined,
 	},
 }))

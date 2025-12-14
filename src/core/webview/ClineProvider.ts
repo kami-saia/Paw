@@ -1461,24 +1461,27 @@ export class ClineProvider
 	// MCP
 
 	async ensureMcpServersDirectoryExists(): Promise<string> {
-		// Get platform-specific application data directory
+		// Keep fork storage isolated from upstream when both extensions are installed.
+		// Use a human-readable folder name that can be overridden for variant builds.
+		const appFolderName = Package.outputChannel
+
 		let mcpServersDir: string
 		if (process.platform === "win32") {
-			// Windows: %APPDATA%\Roo-Code\MCP
-			mcpServersDir = path.join(os.homedir(), "AppData", "Roaming", "Roo-Code", "MCP")
+			// Windows: %APPDATA%\<AppFolder>\MCP
+			mcpServersDir = path.join(os.homedir(), "AppData", "Roaming", appFolderName, "MCP")
 		} else if (process.platform === "darwin") {
-			// macOS: ~/Documents/Cline/MCP
-			mcpServersDir = path.join(os.homedir(), "Documents", "Cline", "MCP")
+			// macOS: ~/Library/Application Support/<AppFolder>/MCP
+			mcpServersDir = path.join(os.homedir(), "Library", "Application Support", appFolderName, "MCP")
 		} else {
-			// Linux: ~/.local/share/Cline/MCP
-			mcpServersDir = path.join(os.homedir(), ".local", "share", "Roo-Code", "MCP")
+			// Linux: ~/.local/share/<AppFolder>/MCP
+			mcpServersDir = path.join(os.homedir(), ".local", "share", appFolderName, "MCP")
 		}
 
 		try {
 			await fs.mkdir(mcpServersDir, { recursive: true })
-		} catch (error) {
-			// Fallback to a relative path if directory creation fails
-			return path.join(os.homedir(), ".roo-code", "mcp")
+		} catch {
+			// Fallback to a home-relative path if directory creation fails.
+			return path.join(os.homedir(), `.${Package.name}`, "mcp")
 		}
 		return mcpServersDir
 	}
